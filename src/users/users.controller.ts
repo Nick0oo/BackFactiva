@@ -8,7 +8,10 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   // Crear usuario manualmente (opcional)
-
+  @Post()
+  create(@Body() createUserDto: CreateUserDto) {
+    return this.usersService.create(createUserDto);
+  }
 
   // Login desde el frontend por OAuth (sin password)
   @Post('login')
@@ -16,7 +19,7 @@ export class UsersController {
     const { email } = createUserDto;
     return this.usersService.findOrCreateOAuthUser(email);
   }
-
+  
   // Ruta protegida con JWT
   @UseGuards(JwtAuthGuard)
   @Get('me')
