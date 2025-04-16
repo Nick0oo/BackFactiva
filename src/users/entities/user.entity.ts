@@ -18,6 +18,11 @@ export class User {
     provider?: string; // e.g., 'google'
     @Prop()
     hashedRefreshToken?: string;
+    @Prop()
+    resetTokenExpires?: string;
+    @Prop()
+    resetPasswordToken?: string;
+
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

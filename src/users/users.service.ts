@@ -55,15 +55,12 @@ async findById(id: string): Promise<UserDocument> {
     throw new HttpException('User not found', HttpStatus.NOT_FOUND);
   }
   return user;
+
 }
-
-
-
 
 async findAll(): Promise<any[]> {
   return this.userModel.find().exec();
 }
-
 
 async updateRefreshToken(userId: string, hashedToken: string | null) {
   return this.userModel.findByIdAndUpdate(userId, {
@@ -75,8 +72,48 @@ async findByEmail(email: string): Promise<UserDocument | null> {
   return this.userModel.findOne({ email }).exec();
 }
 
+
+// user.service.ts
+
+async saveResetToken(userId: string, token: string, expires: Date) {
+  await this.userModel.findByIdAndUpdate(userId, {
+    resetPasswordToken: token,
+    resetTokenExpires: expires,
+  });
 }
 
 
+async findResetToken(token: string): Promise<{ token: string; expires: Date } | undefined> {
+  const user = await this.userModel.findOne({ resetPasswordToken: token }).exec();
+  if (user && user.resetTokenExpires && new Date(user.resetTokenExpires) > new Date()) {
+    return { token: user.resetPasswordToken ?? '', expires: new Date(user.resetTokenExpires) };
+  }
+  return undefined;
+
+}
+
+async updatePassword(userId: string, newPassword: string): Promise<User> {
+  const user = await this.userModel.findById(userId).exec();
+  if (!user) {
+    throw new Error('Usuario no encontrado');
+  }
+  user.password = newPassword;
+  return user.save();
+}
+
+async deleteResetToken(token: string): Promise<void> {
+  await this.userModel.updateOne(
+    { resetPasswordToken: token },
+    { $unset: { resetPasswordToken: "", resetTokenExpires: "" } }
+  ).exec();
+}
 
 
+async clearResetToken(userId: string) {
+  await this.userModel.findByIdAndUpdate(userId, {
+    resetPasswordToken: null,
+    resetTokenExpires: null,
+  });
+}
+  
+}

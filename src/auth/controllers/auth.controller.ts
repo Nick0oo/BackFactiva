@@ -1,5 +1,9 @@
 // src/auth/auth.controller.ts
+
+import { Controller, Post, Get, Req, Res, UseGuards, Body, UnauthorizedException, Query } from '@nestjs/common';
+
 import { Controller, Post, Get, Req, Res, UseGuards, Body, UnauthorizedException } from '@nestjs/common';
+
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
 import * as bcrypt from 'bcrypt';
@@ -14,7 +18,9 @@ export class AuthController {
   constructor(
     private readonly usersService: UsersService,
     private readonly authService: AuthService,
+  ) { }
   ) {}
+
   @Get('google')
   @UseGuards(AuthGuard('google'))
   async googleAuth() {
@@ -27,11 +33,13 @@ export class AuthController {
     if (!req.user || !req.user.jwt) {
       return res.status(401).json({ message: 'Autenticación fallida' });
     }
-  
+<
+
     const { jwtToken, user } = req.user;
     return res.redirect(`http://localhost:4200/auth/callback?token=${jwtToken}`);
   }
-  
+
+
   @Post('login')
   async login(@Body() body: LoginDto) {
     // Validación manual (por ejemplo, si el email no es proporcionado)
@@ -80,4 +88,21 @@ export class AuthController {
       throw new UnauthorizedException(error.message || 'Error al crear el usuario');
     }
   }
+
+
+  @Post('forgot-password')
+  async forgotPassword(@Body('email') email: string) {
+    return this.authService.forgotPassword(email);
+  }
+
+  @Post('reset-password')
+  async resetPassword(
+    @Query('token') token: string, 
+    @Body('newPassword') newPassword: string,
+  ) {
+    return this.authService.resetPassword(token, newPassword);
+  }
+
+
+
 }
