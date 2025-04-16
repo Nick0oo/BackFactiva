@@ -1,5 +1,9 @@
 // src/auth/auth.controller.ts
+
 import { Controller, Post, Get, Req, Res, UseGuards, Body, UnauthorizedException, Query } from '@nestjs/common';
+
+import { Controller, Post, Get, Req, Res, UseGuards, Body, UnauthorizedException } from '@nestjs/common';
+
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
 import * as bcrypt from 'bcrypt';
@@ -8,12 +12,15 @@ import { UsersService } from '../../users/users.service';
 import { LoginDto } from '../dto/login.dto';
 import { CreateUserDto } from '../../users/dto/create-user.dto';
 
+
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly usersService: UsersService,
     private readonly authService: AuthService,
   ) { }
+  ) {}
+
   @Get('google')
   @UseGuards(AuthGuard('google'))
   async googleAuth() {
@@ -26,10 +33,12 @@ export class AuthController {
     if (!req.user || !req.user.jwt) {
       return res.status(401).json({ message: 'Autenticación fallida' });
     }
+<
 
     const { jwtToken, user } = req.user;
     return res.redirect(`http://localhost:4200/auth/callback?token=${jwtToken}`);
   }
+
 
   @Post('login')
   async login(@Body() body: LoginDto) {
@@ -80,6 +89,7 @@ export class AuthController {
     }
   }
 
+
   @Post('forgot-password')
   async forgotPassword(@Body('email') email: string) {
     return this.authService.forgotPassword(email);
@@ -92,6 +102,7 @@ export class AuthController {
   ) {
     return this.authService.resetPassword(token, newPassword);
   }
+
 
 
 }

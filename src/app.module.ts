@@ -10,7 +10,10 @@ import { MailModule } from './mail/mail.module';
 @Module({
   imports: [ ConfigModule.forRoot({
     isGlobal: true,
+
   }), AuthModule, UsersModule, MongooseModule.forRoot('mongodb://localhost/nest'), MailModule],
+
+
   controllers: [AppController],
   providers: [AppService],
 })

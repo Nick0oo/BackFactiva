@@ -55,6 +55,7 @@ async findById(id: string): Promise<UserDocument> {
     throw new HttpException('User not found', HttpStatus.NOT_FOUND);
   }
   return user;
+
 }
 
 async findAll(): Promise<any[]> {
@@ -71,6 +72,7 @@ async findByEmail(email: string): Promise<UserDocument | null> {
   return this.userModel.findOne({ email }).exec();
 }
 
+
 // user.service.ts
 
 async saveResetToken(userId: string, token: string, expires: Date) {
@@ -80,12 +82,14 @@ async saveResetToken(userId: string, token: string, expires: Date) {
   });
 }
 
+
 async findResetToken(token: string): Promise<{ token: string; expires: Date } | undefined> {
   const user = await this.userModel.findOne({ resetPasswordToken: token }).exec();
   if (user && user.resetTokenExpires && new Date(user.resetTokenExpires) > new Date()) {
     return { token: user.resetPasswordToken ?? '', expires: new Date(user.resetTokenExpires) };
   }
   return undefined;
+
 }
 
 async updatePassword(userId: string, newPassword: string): Promise<User> {
