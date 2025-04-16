@@ -1,9 +1,4 @@
-// src/auth/auth.controller.ts
-
 import { Controller, Post, Get, Req, Res, UseGuards, Body, UnauthorizedException, Query } from '@nestjs/common';
-
-import { Controller, Post, Get, Req, Res, UseGuards, Body, UnauthorizedException } from '@nestjs/common';
-
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
 import * as bcrypt from 'bcrypt';
@@ -19,7 +14,6 @@ export class AuthController {
     private readonly usersService: UsersService,
     private readonly authService: AuthService,
   ) { }
-  ) {}
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
@@ -33,7 +27,6 @@ export class AuthController {
     if (!req.user || !req.user.jwt) {
       return res.status(401).json({ message: 'Autenticación fallida' });
     }
-<
 
     const { jwtToken, user } = req.user;
     return res.redirect(`http://localhost:4200/auth/callback?token=${jwtToken}`);
