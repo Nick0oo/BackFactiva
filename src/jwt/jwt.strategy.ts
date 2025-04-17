@@ -14,12 +14,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any) {
+  validate(payload: {
+    sub: string;
+    email: string;
+    name: string;
+    mfa: boolean;
+  }) {
     // Lo que devuelvas aquí estará disponible en req.user
     return {
-      userId: payload.sub,
+      _id: payload.sub,
       email: payload.email,
       name: payload.name,
+      mfa: payload.mfa,
     };
   }
 }
