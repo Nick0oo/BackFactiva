@@ -7,9 +7,8 @@ export class LoginDto {
 
   @IsString({ message: 'La contraseña debe ser una cadena de texto' })
   @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
-  @Matches(
-    /[!@#$%^&*(),.?":{}|<>]/,
-    { message: 'La contraseña debe contener al menos un carácter especial' }
-  )
+  @Matches(/[!@#$%^&*(),.?":{}|<>]/, {
+    message: 'La contraseña debe contener al menos un carácter especial',
+  })
   password: string;
 }

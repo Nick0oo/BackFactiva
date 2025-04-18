@@ -4,6 +4,7 @@ import { User, UserDocument } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { MongoError } from 'mongodb';
 
 @Injectable()
 export class UsersService {
@@ -11,13 +12,19 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto): Promise<Omit<User, 'password'>> {
     try {
-      const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-      const createdUser = new this.userModel({ ...createUserDto, password: hashedPassword });
-      const savedUser = await createdUser.save();
-      const { password, ...userWithoutPassword } = savedUser.toObject();
+      const hashedPassword = await bcrypt.hash(
+        createUserDto.password.trim(),
+        10,
+      );
+      const user = new this.userModel({
+        ...createUserDto,
+        password: hashedPassword,
+      });
+      const savedUser = await user.save();
+      const { ...userWithoutPassword } = savedUser.toObject();
       return userWithoutPassword;
     } catch (error) {
-      if (error.code === 11000) {
+      if (error instanceof MongoError && error.code === 11000) {
         throw new HttpException('Email already exists', HttpStatus.BAD_REQUEST);
       }
       console.error(error);
@@ -28,92 +35,132 @@ export class UsersService {
     }
   }
 
-async findOrCreateOAuthUser(profile: any): Promise<Omit<User, 'password'> & { _id: string }> {
-  const email = profile.emails?.[0]?.value;
-  if (!email) {
-    throw new HttpException('Email not found in Google profile', HttpStatus.BAD_REQUEST);
+  async findOrCreateOAuthUser(profile: {
+    emails?: { value: string }[];
+    displayName?: string;
+    provider?: string;
+  }): Promise<Omit<User, 'password'> & { _id: string }> {
+    const email =
+      profile.emails && profile.emails[0] ? profile.emails[0].value : undefined;
+    if (!email) {
+      throw new HttpException(
+        'Email not found in Google profile',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    if (!profile.displayName) {
+      throw new HttpException(
+        'Display name not found in OAuth profile',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    let user: UserDocument | null = await this.userModel
+      .findOne({ email })
+      .exec();
+
+    if (!user) {
+      user = new this.userModel({
+        name: profile.displayName,
+        email,
+        provider: profile.provider,
+      });
+      await user.save();
+    }
+
+    const userWithoutPassword: Omit<User, 'password'> = user.toObject() as Omit<
+      User,
+      'password'
+    >;
+    return { ...userWithoutPassword, _id: (user._id as string).toString() };
   }
 
-  let user: UserDocument | null = await this.userModel.findOne({ email }).exec();
+  async findById(id: string): Promise<UserDocument> {
+    const user = await this.userModel.findById(id).exec();
+    console.log('User found:', id);
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+    return user;
+  }
 
-  if (!user) {
-    user = new this.userModel({
-      name: profile.displayName,
-      email,
-      provider: profile.provider,
+  async findAll(): Promise<any[]> {
+    return this.userModel.find().exec();
+  }
+
+  async updateRefreshToken(userId: string, hashedToken: string | null) {
+    return this.userModel.findByIdAndUpdate(userId, {
+      hashedRefreshToken: hashedToken,
     });
-    await user.save();
   }
 
-  const { password, ...userWithoutPassword } = user.toObject();
-  return { ...userWithoutPassword, _id: (user._id as string).toString() };
-}
-
-async findById(id: string): Promise<UserDocument> {
-  const user = await this.userModel.findById(id).exec();
-  if (!user) {
-    throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+  async findByEmail(email: string): Promise<UserDocument | null> {
+    return this.userModel.findOne({ email }).exec();
   }
-  return user;
+  // user.service.ts
 
-}
-
-async findAll(): Promise<any[]> {
-  return this.userModel.find().exec();
-}
-
-async updateRefreshToken(userId: string, hashedToken: string | null) {
-  return this.userModel.findByIdAndUpdate(userId, {
-    hashedRefreshToken: hashedToken,
-  });
-}
-
-async findByEmail(email: string): Promise<UserDocument | null> {
-  return this.userModel.findOne({ email }).exec();
-}
-
-
-// user.service.ts
-
-async saveResetToken(userId: string, token: string, expires: Date) {
-  await this.userModel.findByIdAndUpdate(userId, {
-    resetPasswordToken: token,
-    resetTokenExpires: expires,
-  });
-}
-
-
-async findResetToken(token: string): Promise<{ token: string; expires: Date } | undefined> {
-  const user = await this.userModel.findOne({ resetPasswordToken: token }).exec();
-  if (user && user.resetTokenExpires && new Date(user.resetTokenExpires) > new Date()) {
-    return { token: user.resetPasswordToken ?? '', expires: new Date(user.resetTokenExpires) };
+  async saveResetToken(userId: string, token: string, expires: Date) {
+    await this.userModel.findByIdAndUpdate(userId, {
+      resetPasswordToken: token,
+      resetTokenExpires: expires,
+    });
   }
-  return undefined;
 
-}
-
-async updatePassword(userId: string, newPassword: string): Promise<User> {
-  const user = await this.userModel.findById(userId).exec();
-  if (!user) {
-    throw new Error('Usuario no encontrado');
+  async findResetToken(
+    token: string,
+  ): Promise<{ token: string; expires: Date } | undefined> {
+    const user = await this.userModel
+      .findOne({ resetPasswordToken: token })
+      .exec();
+    if (
+      user &&
+      user.resetTokenExpires &&
+      new Date(user.resetTokenExpires) > new Date()
+    ) {
+      return {
+        token: user.resetPasswordToken ?? '',
+        expires: new Date(user.resetTokenExpires),
+      };
+    }
+    return undefined;
   }
-  user.password = newPassword;
-  return user.save();
-}
 
-async deleteResetToken(token: string): Promise<void> {
-  await this.userModel.updateOne(
-    { resetPasswordToken: token },
-    { $unset: { resetPasswordToken: "", resetTokenExpires: "" } }
-  ).exec();
-}
+  async updatePassword(userId: string, newPassword: string): Promise<User> {
+    const user = await this.userModel.findById(userId).exec();
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
 
+    // Hashear la nueva contraseña
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    return user.save();
+  }
 
-async clearResetToken(userId: string) {
-  await this.userModel.findByIdAndUpdate(userId, {
-    resetPasswordToken: null,
-    resetTokenExpires: null,
-  });
-}
-  
+  async deleteResetToken(token: string): Promise<void> {
+    await this.userModel
+      .updateOne(
+        { resetPasswordToken: token },
+        { $unset: { resetPasswordToken: '', resetTokenExpires: '' } },
+      )
+      .exec();
+  }
+
+  async clearResetToken(userId: string) {
+    await this.userModel.findByIdAndUpdate(userId, {
+      resetPasswordToken: null,
+      resetTokenExpires: null,
+    });
+  }
+
+  async updateUser(userId: string, userData: Partial<User>): Promise<User> {
+    // Implement the logic to update the user in the database
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(userId, userData, { new: true })
+      .exec();
+    if (!updatedUser) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+    return updatedUser;
+  }
 }
