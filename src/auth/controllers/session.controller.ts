@@ -1,4 +1,11 @@
-import { Controller, Post, Req, Res, UseGuards, Body, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Response, Request } from 'express';
 import { JwtAuthGuard } from '../../jwt/jwt-auth.guard';
 import { AuthService } from '../auth.service';
@@ -9,7 +16,10 @@ export class SessionController {
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
-  async logout(@Req() req, @Res() res: Response) {
+  async logout(
+    @Req() req: Request & { user: { sub: string } },
+    @Res() res: Response,
+  ) {
     const user = req.user;
     // Revocar el refresh token (si se guarda en la base de datos)
     await this.authService.revokeRefreshToken(user.sub);
@@ -25,8 +35,12 @@ export class SessionController {
   }
 
   @Post('refresh')
-  async refresh(@Req() req: Request, @Res() res: Response) {
-    const refreshToken = req.cookies.refreshToken; // Obtenemos el refresh token desde la cookie
+  async refresh(
+    @Req() req: Request & { cookies: { [key: string]: string } },
+    @Res() res: Response,
+  ) {
+    const refreshToken = (req.cookies as { [key: string]: string })
+      .refreshToken; // Obtenemos el refresh token desde la cookie
 
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token no proporcionado');
