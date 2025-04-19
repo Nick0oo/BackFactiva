@@ -89,7 +89,8 @@ export class AuthController {
       user._id as string,
       hashedRefreshToken,
     );
-
+    console.log('Access Token:', accessToken);
+    console.log('Refresh Token:', refreshToken);
     // Devolver respuesta
     return {
       user: {
@@ -106,13 +107,13 @@ export class AuthController {
   async register(@Body() createUserDto: CreateUserDto, @Res() res: Response) {
     try {
       // Registra al nuevo usuario y genera un token
-      const { user, token } = await this.authService.register(createUserDto);
+      const { user, tokens } = await this.authService.register(createUserDto);
 
       // Configura la cookie con HttpOnly
       return res.status(201).json({
         message: 'Usuario creado exitosamente',
         user,
-        token,
+        tokens,
       });
     } catch (error: unknown) {
       const errorMessage =

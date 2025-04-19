@@ -56,7 +56,7 @@ export class AuthService {
     }
 
     // Generar JWT
-    const token = this.generateJwt({
+    const tokens = this.generateJwt({
       _id: (
         newUser._id as unknown as {
           toHexString: () => string;
@@ -65,7 +65,7 @@ export class AuthService {
       email: newUser.email,
     });
 
-    return { user: newUser, token };
+    return { user: newUser, tokens };
   }
 
   async validateUser(email: string, password: string): Promise<User | null> {

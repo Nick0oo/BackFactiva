@@ -2,10 +2,10 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { AllExceptionsFilter } from './common/filters/all-exception.filter';
-
+import * as dotenv from 'dotenv';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
+  dotenv.config();
   const env = process.env.NODE_ENV || 'development';
 
   const allowedOrigins = (

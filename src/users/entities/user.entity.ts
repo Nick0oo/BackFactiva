@@ -23,6 +23,8 @@ export class User {
   resetPasswordToken?: string;
   @Prop() isMfaEnabled?: boolean;
   @Prop() mfaSecret?: string;
+  @Prop()
+  tokens?: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
