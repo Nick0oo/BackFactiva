@@ -32,7 +32,12 @@ import {
         const uri = await Promise.resolve(
           configService.get<string>('database.uri'),
         );
-        return { uri };
+        return {
+          uri,
+          serverApi: {
+            version: '1',
+          },
+        };
       },
     }),
     AuthModule,
