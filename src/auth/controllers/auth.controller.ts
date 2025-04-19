@@ -63,13 +63,11 @@ export class AuthController {
     // Buscar el usuario en la base de datos
     const user = await this.usersService.findByEmail(body.email);
     if (!user) {
-      console.log('Invalid credentials - User not found'); // Log de depuración
       throw new UnauthorizedException('Credenciales incorrectas');
     }
     // Comparar la contraseña
     const passwordMatch = await bcrypt.compare(user.password, body.password); // Si usas argon2
     if (!passwordMatch) {
-      console.log('Invalid credentials - Password mismatch'); // Log de depuración
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
