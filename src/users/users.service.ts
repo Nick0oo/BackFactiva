@@ -1,14 +1,17 @@
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User, UserDocument } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { MongoError } from 'mongodb';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel('Role') private roleModel: Model<any>, // Replace 'any' with the appropriate RoleDocument type if available
+  ) {}
 
   async create(createUserDto: CreateUserDto): Promise<Omit<User, 'password'>> {
     try {
@@ -162,5 +165,29 @@ export class UsersService {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
     return updatedUser;
+  }
+
+  async assignRole(userId: string, roleId: string): Promise<User> {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.roles.some(role => role.toString() === roleId)) {
+      const role = await this.roleModel.findById(roleId).exec();
+      if (!role) {
+        throw new NotFoundException('Role not found');
+      }
+      user.roles.push(role);
+    }
+
+    return user.save();
+  }
+  async findUserWithRoles(userId: string): Promise<User> {
+    const user = await this.userModel.findById(userId).populate('roles').exec();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
   }
 }

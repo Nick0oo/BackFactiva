@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
+import { Role } from 'src/users/roles/entities/role.entity';
 
 export type UserDocument = User & Document;
 
@@ -13,6 +14,8 @@ export class User {
   password: string;
   @Prop()
   phone: string;
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Role' }] }) // Relación con roles
+  roles: Role[];
   @Prop()
   provider?: string;
   @Prop()
