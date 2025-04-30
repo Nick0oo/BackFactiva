@@ -66,6 +66,9 @@ export class AuthController {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
     // Comparar la contraseña
+    if (!user.password) {
+      throw new UnauthorizedException('Credenciales incorrectas');
+    }
     const passwordMatch = await bcrypt.compare(user.password, body.password); // Si usas argon2
     if (!passwordMatch) {
       throw new UnauthorizedException('Credenciales incorrectas');
@@ -145,7 +148,8 @@ export class AuthController {
     }
 
     // Generar el secreto MFA
-    const { secret, otpauth } = this.mfaService.generateSecret(user.email);
+    const result = await this.mfaService.generateSecret(user.email); // Usa await aquí
+    const { secret, otpauth } = result;
 
     // Guardar el secreto en la base de datos
     user.mfaSecret = secret;

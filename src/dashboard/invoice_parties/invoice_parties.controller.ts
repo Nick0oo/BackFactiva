@@ -7,28 +7,28 @@ import { UpdateInvoicePartyDto } from './dto/update-invoice_party.dto';
 export class InvoicePartiesController {
   constructor(private readonly invoicePartiesService: InvoicePartiesService) {}
 
-  @Post()
-  create(@Body() createInvoicePartyDto: CreateInvoicePartyDto) {
-    return this.invoicePartiesService.create(createInvoicePartyDto);
+  @Post('receiver')
+  async create(@Body() createInvoicePartyDto: CreateInvoicePartyDto) {
+    return await this.invoicePartiesService.create(createInvoicePartyDto);
   }
 
   @Get()
-  findAll() {
-    return this.invoicePartiesService.findAll();
+  async findAll() {
+    return await this.invoicePartiesService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.invoicePartiesService.findOne(+id);
+  async findOne(@Param('id') id: string) { // Asegúrate de que 'id' sea string
+    return await this.invoicePartiesService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateInvoicePartyDto: UpdateInvoicePartyDto) {
-    return this.invoicePartiesService.update(+id, updateInvoicePartyDto);
+  async update(@Param('id') id: string, @Body() updateInvoicePartyDto: UpdateInvoicePartyDto) { // Asegúrate de que 'id' sea string
+    return await this.invoicePartiesService.update(id, updateInvoicePartyDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.invoicePartiesService.remove(+id);
+  async remove(@Param('id') id: string) { // Asegúrate de que 'id' sea string
+    return await this.invoicePartiesService.remove(id);
   }
 }

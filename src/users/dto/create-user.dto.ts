@@ -2,9 +2,11 @@
 import {
   IsEmail,
   IsString,
-  Matches,
+  IsOptional,
+  IsMongoId,
   MinLength,
   MaxLength,
+  Matches
 } from 'class-validator';
 
 export class CreateUserDto {
@@ -23,5 +25,11 @@ export class CreateUserDto {
   @Matches(/[!@#$%^&*(),.?":{}|<>]/, {
     message: 'La contraseña debe contener al menos un carácter especial',
   })
-  password: string;
+  password: string;
+
+  
+  @IsOptional()
+  @IsMongoId()
+  role?: string; // Referencia al _id de un rol (si creamos la entidad Role)
+
 }

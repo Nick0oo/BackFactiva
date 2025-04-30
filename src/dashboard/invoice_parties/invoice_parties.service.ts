@@ -1,26 +1,62 @@
-import { Injectable } from '@nestjs/common';
-import { CreateInvoicePartyDto } from './dto/create-invoice_party.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { UpdateInvoicePartyDto } from './dto/update-invoice_party.dto';
+import { CreateInvoicePartyDto } from './dto/create-invoice_party.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { InvoiceParty } from './entities/invoice_party.entity';
+import { InvoicePartyDocument } from './entities/invoice_party.entity';
+
 
 @Injectable()
 export class InvoicePartiesService {
-  create(createInvoicePartyDto: CreateInvoicePartyDto) {
-    return 'This action adds a new invoiceParty';
+  constructor(
+    @InjectModel(InvoiceParty.name) private readonly invoicePartyModel: Model<InvoicePartyDocument>,
+  ) {}
+
+  async create(createInvoicePartyDto: CreateInvoicePartyDto): Promise<InvoicePartyDocument> {
+    const createdInvoiceParty = new this.invoicePartyModel(createInvoicePartyDto);
+    return await createdInvoiceParty.save();
   }
 
-  findAll() {
-    return `This action returns all invoiceParties`;
+  async findAll(): Promise<InvoicePartyDocument[]> {
+    return await this.invoicePartyModel.find().exec();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} invoiceParty`;
+  async findOne(id: string): Promise<InvoicePartyDocument> {
+    const invoiceParty = await this.invoicePartyModel.findById(id).exec();
+    if (!invoiceParty) {
+      throw new NotFoundException(`InvoiceParty with ID ${id} not found`);
+    }
+    return invoiceParty;
   }
 
-  update(id: number, updateInvoicePartyDto: UpdateInvoicePartyDto) {
-    return `This action updates a #${id} invoiceParty`;
+  async update(
+    id: string,
+    updateInvoicePartyDto: UpdateInvoicePartyDto,
+  ): Promise<InvoicePartyDocument> {
+    const updatedInvoiceParty = await this.invoicePartyModel.findByIdAndUpdate(
+      id,
+      updateInvoicePartyDto,
+      { new: true },
+    ).exec();
+    if (!updatedInvoiceParty) {
+      throw new NotFoundException(`InvoiceParty with ID ${id} not found`);
+    }
+    return updatedInvoiceParty;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} invoiceParty`;
+  async remove(id: string): Promise<void> {
+    const result = await this.invoicePartyModel.findByIdAndDelete(id).exec();
+    if (!result) {
+      throw new NotFoundException(`InvoiceParty with ID ${id} not found`);
+    }
+  }
+
+  async verifyReceiverExists(receiverId: string): Promise<boolean> {
+    const invoiceParty = await this.invoicePartyModel.findById(receiverId).exec();
+    if (!invoiceParty) {
+      throw new NotFoundException(`Receiver with ID ${receiverId} not found`);
+    }
+    return true;
   }
 }

@@ -1,26 +1,71 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Invoice } from './entities/invoice.entity';
+import { InvoiceDocument } from './entities/invoice.entity';
 
 @Injectable()
 export class InvoiceService {
-  create(createInvoiceDto: CreateInvoiceDto) {
-    return 'This action adds a new invoice';
+  constructor(
+    @InjectModel(Invoice.name) private readonly invoiceModel: Model<InvoiceDocument>,
+  ) {}
+
+  
+  async create(createInvoiceDto: CreateInvoiceDto): Promise<InvoiceDocument> {
+    
+    const createdInvoice = new this.invoiceModel(createInvoiceDto);
+    return await createdInvoice.save();
   }
 
-  findAll() {
-    return `This action returns all invoice`;
+  async findAll(): Promise<InvoiceDocument[]> {
+    return await this.invoiceModel.find().exec();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} invoice`;
+  async findOne(_id: string): Promise<InvoiceDocument> {
+    const invoice = await this.invoiceModel.findById(_id).populate([]).exec(); // Aquí puedes popular las relaciones si las tienes
+    if (!invoice) {
+      throw new NotFoundException(`Invoice with ID ${_id} not found`);
+    }
+    return invoice;
   }
 
-  update(id: number, updateInvoiceDto: UpdateInvoiceDto) {
-    return `This action updates a #${id} invoice`;
+  async update(id: string, updateInvoiceDto: UpdateInvoiceDto): Promise<InvoiceDocument> {
+    const updatedInvoice = await this.invoiceModel.findByIdAndUpdate(
+      id,
+      updateInvoiceDto,
+      { new: true },
+    ).exec();
+    if (!updatedInvoice) {
+      throw new NotFoundException(`Invoice with ID ${id} not found`);
+    }
+    return updatedInvoice;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} invoice`;
+  async remove(id: string): Promise<void> {
+    const result = await this.invoiceModel.findByIdAndDelete(id).exec();
+    if (!result) {
+      throw new NotFoundException(`Invoice with ID ${id} not found`);
+    }
   }
+
+  async findAllByUser(_id: string): Promise<Invoice[]> {
+    return this.invoiceModel.find({ issuerId: _id }).exec();
+  }
+
+  // Obtener facturas por estado y usuario
+  async findByStatusAndUser(status: string): Promise<Invoice[]> {
+    console.log('Buscando con:', { status });
+    return this.invoiceModel.find( {status }).exec();
+  }
+  
+  
+
+  // Obtener total de recaudado de todas las facturas de un usuario
+  async getTotalPrice(userId: string): Promise<number> {
+    const invoices = await this.findAllByUser(userId);
+    return invoices.reduce((total, invoice) => total + invoice.totalAmount, 0);
+  }
+  
 }

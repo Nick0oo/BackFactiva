@@ -38,8 +38,8 @@ export class AuthService {
 
     // Verificar que la contraseña no esté ya hasheada
     if (
-      createUserDto.password.startsWith('$2b$') ||
-      createUserDto.password.length > 60
+      createUserDto.password?.startsWith('$2b$') ||
+      createUserDto.password && createUserDto.password.length > 60
     ) {
       throw new Error('La contraseña ya parece estar hasheada');
     }
