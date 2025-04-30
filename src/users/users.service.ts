@@ -1,25 +1,35 @@
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User, UserDocument } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { MongoError } from 'mongodb';
+import { UnauthorizedException } from '@nestjs/common/exceptions/unauthorized.exception';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel('Role') private roleModel: Model<any>, // Replace 'any' with the appropriate RoleDocument type if available
+    private readonly jwtService: JwtService, // Inject JwtService
+  ) {}
 
   async create(createUserDto: CreateUserDto): Promise<Omit<User, 'password'>> {
     try {
       const hashedPassword = await bcrypt.hash(
-        createUserDto.password.trim(),
+        (createUserDto.password ?? '').trim(),
         10,
       );
+      const userRole = await this.roleModel.findOne({ name: 'user' });
+
       const user = new this.userModel({
         ...createUserDto,
         password: hashedPassword,
+        roles: [userRole?._id],
       });
+      
       const savedUser = await user.save();
       const { ...userWithoutPassword } = savedUser.toObject();
       return userWithoutPassword;
@@ -163,4 +173,53 @@ export class UsersService {
     }
     return updatedUser;
   }
+
+  async assignRole(userId: string, roleId: string): Promise<User> {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.roles?.some(role => role.toString() === roleId)) {
+      const role = await this.roleModel.findById(roleId).exec();
+      if (!role) {
+        throw new NotFoundException('Role not found');
+      }
+      if (!user.roles) {
+        user.roles = [];
+      }
+      user.roles.push(role);
+    }
+
+    return user.save();
+  }
+  async findUserWithRoles(userId: string): Promise<User> {
+    const user = await this.userModel.findById(userId).populate('roles').exec();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
+  async findUserByToken(token: string): Promise<UserDocument | null> {
+    try {
+        const decoded = this.jwtService.verify(token);
+        const userId = decoded.sub;
+        return this.findById(userId);
+    } catch (error) {
+        return null;
+    }
+}
+
+async getUserIdFromToken(token: string): Promise<string> {
+  try {
+    console.log('Token:', token); // Log para verificar el token recibido
+    const decoded = this.jwtService.verify(token);
+    const userId = decoded.sub; // 'sub' es la convención para el ID del usuario en JWT
+    return userId;
+  } catch (error) {
+    throw new UnauthorizedException('Token inválido o expirado');
+  }
+}
+
 }

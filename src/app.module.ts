@@ -1,49 +1,38 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config'; // ¡Añade ConfigService aquí!
 import { AppService } from './app.service';
-import { ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { MailModule } from './mail/mail.module';
 import { MfaModule } from './mfa/mfa.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
-import {
-  appConfig,
-  databaseConfig,
-  googleConfig,
-  jwtConfig,
-  mailConfig,
-} from './config';
+import * as config from './config';
+import { RolesModule } from './users/roles/roles.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, databaseConfig, jwtConfig, mailConfig, googleConfig],
+      envFilePath: '.env',
+      load: [config.appConfig, config.databaseConfig, config.jwtConfig, config.mailConfig, config.googleConfig],
     }),
-
-    // Configuración dinámica de Mongoose
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => {
-        const uri = await Promise.resolve(
-          configService.get<string>('database.uri'),
-        );
-        return {
-          uri,
-          serverApi: {
-            version: '1',
-          },
-        };
-      },
+      useFactory: async (configService: ConfigService) => ({
+        uri: await Promise.resolve(configService.get<string>('database.uri')),
+        serverApi: { version: '1' },
+      }),
     }),
+    DashboardModule,
     AuthModule,
     UsersModule,
     MailModule,
     MfaModule,
+    RolesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
