@@ -44,8 +44,6 @@ export class AuthService {
       throw new Error('La contraseña ya parece estar hasheada');
     }
 
-    console.log('Registrando usuario con email:', createUserDto.email);
-
     // Crear el nuevo usuario
     const newUser = (await this.usersService.create(
       createUserDto,
@@ -73,12 +71,10 @@ export class AuthService {
     const user = await this.usersService.findByEmail(normalizedEmail);
 
     if (!user) {
-      console.log('Usuario no encontrado');
       return null;
     }
 
     if (!user.password || user.password.length < 10) {
-      console.log('Contraseña inválida o vacía');
       return null;
     }
 
@@ -86,15 +82,10 @@ export class AuthService {
       password.trim(),
       user.password,
     );
-    console.log('Contraseña ingresada:', password.trim());
-    console.log('Contraseña hasheada:', user.password);
-    console.log('Resultado de la comparación:', isPasswordValid);
     if (!isPasswordValid) {
-      console.log('La contraseña no es válida');
       return null;
     }
 
-    console.log('La contraseña es válida');
     return user;
   }
 

@@ -1,55 +1,103 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { MailerService } from '@nestjs-modules/mailer';
+// filepath: <tu-proyecto-backend>/src/mail/mail.service.ts
+import {
+  Injectable,
+  Logger,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Resend } from 'resend'; // Importa Resend
 
 @Injectable()
 export class MailService {
-  constructor(
-    private readonly mailerService: MailerService,
-    private readonly configService: ConfigService,
-  ) {}
+  private readonly logger = new Logger(MailService.name);
+  private readonly resend: Resend;
+  private readonly fromEmail: string;
 
-  /**
-   * Envía un correo de restablecimiento de contraseña.
-   * @param email Dirección de correo del destinatario.
-   * @param token Token único para el restablecimiento de contraseña.
-   */
-  async sendResetPasswordEmail(email: string, token: string): Promise<void> {
-    try {
-      const resetUrl = `http://localhost:4200/reset-password?token=${token}`;
+  constructor(private configService: ConfigService) {
+    const apiKey = this.configService.get<string>('RESEND_API_KEY');
+    this.fromEmail =
+      this.configService.get<string>('RESEND_FROM_EMAIL') ??
+      (() => {
+        this.logger.error('RESEND_FROM_EMAIL no está configurado en .env');
+        throw new Error('Configuración incompleta: Falta RESEND_FROM_EMAIL.');
+      })();
 
-      await this.mailerService.sendMail({
-        to: email,
-        subject: 'Recupera tu contraseña',
-        text: `Haz clic en este enlace para restablecer tu contraseña: ${resetUrl}`,
-        html: `<p>Haz clic aquí para restablecer tu contraseña:</p><a href="${resetUrl}">${resetUrl}</a>`,
-      });
-    } catch (error) {
-      console.error('Error al enviar el correo de restablecimiento:', error);
-      throw new InternalServerErrorException('Error al enviar el correo de restablecimiento');
+    if (!apiKey) {
+      this.logger.error('RESEND_API_KEY no está configurada en .env');
+      throw new Error('Configuración incompleta: Falta RESEND_API_KEY.');
     }
+    if (!this.fromEmail) {
+      this.logger.error('RESEND_FROM_EMAIL no está configurado en .env');
+      throw new Error('Configuración incompleta: Falta RESEND_FROM_EMAIL.');
+    }
+
+    this.resend = new Resend(apiKey);
+    this.logger.log('Servicio de Mail (Resend) inicializado.');
   }
 
   /**
-   * Envía un correo genérico.
-   * @param options Opciones del correo (destinatario, asunto, texto, HTML).
+   * Envía un correo electrónico usando Resend.
+   * @param options Opciones del correo: to, subject, html, text (opcional)
    */
   async sendMail(options: {
-    to: string;
+    to: string | string[]; // Resend permite enviar a múltiples destinatarios
     subject: string;
-    text: string;
-    html?: string;
+    html?: string; // Resend prefiere HTML, pero text es opcional
+    text?: string;
   }): Promise<void> {
+    this.logger.log(
+      `Intentando enviar correo a: ${Array.isArray(options.to) ? options.to.join(', ') : options.to} con asunto: ${options.subject}`,
+    );
+
     try {
-      await this.mailerService.sendMail({
+      const { data, error } = await this.resend.emails.send({
+        from: this.fromEmail,
         to: options.to,
         subject: options.subject,
-        text: options.text,
-        html: options.html,
+        html: options.html, // Asegúrate de enviar contenido HTML si es posible
+        text: options.text ?? '', // Proporciona un valor predeterminado si text es undefined
       });
-    } catch (error) {
-      console.error('Error al enviar el correo:', error);
-      throw new InternalServerErrorException('Error al enviar el correo');
+
+      if (error) {
+        this.logger.error('Error al enviar correo con Resend:', error);
+        throw new InternalServerErrorException(
+          `Error al enviar correo: ${error.message}`,
+        );
+      }
+
+      this.logger.log(
+        `Correo enviado exitosamente a ${Array.isArray(options.to) ? options.to.join(', ') : options.to}. ID: ${data?.id}`,
+      );
+    } catch (exception) {
+      this.logger.error('Excepción al intentar enviar correo:', exception);
+      // Lanza una excepción más genérica o maneja según necesites
+      if (exception instanceof InternalServerErrorException) {
+        throw exception; // Re-lanza la excepción específica de Resend si ya fue lanzada
+      }
+      throw new InternalServerErrorException(
+        'Ocurrió un error inesperado al enviar el correo.',
+      );
     }
+  }
+
+  async sendResetPasswordEmail(email: string, token: string): Promise<void> {
+    const frontendBaseUrl = this.configService.get<string>('FRONTEND_URL');
+    if (!frontendBaseUrl) {
+      this.logger.error('FRONTEND_URL no está configurado en .env');
+      throw new InternalServerErrorException(
+        'La URL del frontend no está configurada.',
+      );
+    }
+    const resetUrl = `${frontendBaseUrl}/reset-password?token=${token}`;
+
+    const subject = 'Recupera tu contraseña';
+    const html = `<p>Recibiste este correo porque solicitaste restablecer tu contraseña.</p>
+                  <p>Haz clic en el siguiente enlace para continuar:</p>
+                  <a href="${resetUrl}" target="_blank" style="padding: 10px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Restablecer mi contraseña</a>
+                  <p>Si no solicitaste esto, puedes ignorar este correo.</p>
+                  <p>El enlace expirará en 15 minutos.</p>`;
+    const text = `Recibiste este correo porque solicitaste restablecer tu contraseña. Copia y pega este enlace en tu navegador para continuar: ${resetUrl} Si no solicitaste esto, puedes ignorar este correo. El enlace expirará en 15 minutos.`;
+
+    await this.sendMail({ to: email, subject, html, text });
   }
 }

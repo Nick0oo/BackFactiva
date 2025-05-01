@@ -30,6 +30,10 @@ export class InvoiceService {
     }
     return invoice;
   }
+  async countByUser(_id: string): Promise<number> {
+    return this.invoiceModel.countDocuments({ issuerId: _id }).exec();
+  }
+  
 
   async update(id: string, updateInvoiceDto: UpdateInvoiceDto): Promise<InvoiceDocument> {
     const updatedInvoice = await this.invoiceModel.findByIdAndUpdate(
@@ -53,15 +57,10 @@ export class InvoiceService {
   async findAllByUser(_id: string): Promise<Invoice[]> {
     return this.invoiceModel.find({ issuerId: _id }).exec();
   }
-
   // Obtener facturas por estado y usuario
-  async findByStatusAndUser(status: string): Promise<Invoice[]> {
-    console.log('Buscando con:', { status });
-    return this.invoiceModel.find( {status }).exec();
+  async findByStatusAndUser(_id: string, status: string): Promise<Invoice[]> {
+    return this.invoiceModel.find({ issuerId: _id, status }).exec();
   }
-  
-  
-
   // Obtener total de recaudado de todas las facturas de un usuario
   async getTotalPrice(userId: string): Promise<number> {
     const invoices = await this.findAllByUser(userId);

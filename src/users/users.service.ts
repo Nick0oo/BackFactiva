@@ -107,7 +107,6 @@ export class UsersService {
   async findByEmail(email: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ email }).exec();
   }
-  // user.service.ts
 
   async saveResetToken(userId: string, token: string, expires: Date) {
     await this.userModel.findByIdAndUpdate(userId, {

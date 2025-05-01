@@ -6,8 +6,6 @@ import { Controller, Get, Req, UseGuards, Patch, Param } from '@nestjs/common';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // Login desde el frontend por OAuth (sin password)
-  // Ruta protegida con JWT
   @UseGuards(JwtAuthGuard)
   @Get('me')
   getProfile(

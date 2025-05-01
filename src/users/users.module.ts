@@ -11,8 +11,8 @@ import { JwtConfigModule } from 'src/jwt/jwt.module';
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: User.name, schema: UserSchema }, // Registro del modelo User
-      { name: Role.name, schema: RoleSchema }, // Registro del modelo Role
+      { name: User.name, schema: UserSchema },
+      { name: Role.name, schema: RoleSchema },
     ]),
     JwtConfigModule
   ],

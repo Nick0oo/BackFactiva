@@ -10,56 +10,30 @@ export class DashboardController {
   constructor(
     private readonly invoiceService: InvoiceService,
     private readonly userService: UsersService, // Inyectar el servicio de usuario
-  ) {}
-
-  // Obtener toda la factura por ID
-  @Get('invoice/')
+  ) { }
+  // Obtener todas las facturas
+  @Get('invoices')
   @UseGuards(JwtAuthGuard)
-  async findInvoice( id: string, @Request() req) {
-    console.log('ID recibido por parámetro:', id); // ✅ Debug útil
-    console.log('ID del usuario autenticado:', req.user._id); // ✅ Debug útil
+  async getAllInvoices(@Request() req) {
+    const userId = req.user._id; // Extrae el ID del usuario desde el JWT
 
-    const token = req.headers.authorization?.split(' ')[1]; // Extraer el token del encabezado de autorización
-    if (!token) {
-      throw new UnauthorizedException('Token no proporcionado');
-    }
-    const issuerId = await this.userService.getUserIdFromToken(token); // Usar el servicio para obtener el userId del token
-
-    // Validar si el emisor (issuerId) existe en el DTO
-    if (!issuerId) {
-      throw new Error('El emisor es obligatorio');
-    }
-
-    const invoice = await this.invoiceService.findOne(issuerId);
-
-    if (!invoice) {
-      throw new NotFoundException(`Factura con ID ${issuerId} no encontrada`);
-    }
-
-    // Verifica que la factura pertenezca al usuario autenticado
-    if (invoice.issuerId.toString() !== req.user._id.toString()) {
-      throw new UnauthorizedException('No puedes acceder a esta factura');
-    }
-  return invoice;
-}
-
+    // Obtener todas las facturas del usuario logueado
+    return this.invoiceService.findAllByUser(userId);
+  }
 
   // Obtener el total de facturas
   @Get('invoice/count')
   @UseGuards(JwtAuthGuard)
   async getTotalFacturas(@Request() req) {
-    const userId = req.user.sub; // Extrae el ID del usuario desde el JWT
-
-    // Obtener todas las facturas del usuario logueado
-    const invoices = await this.invoiceService.findAllByUser(userId);
-    return { count: invoices.length };
+    const userId = req.user._id;
+    const count = await this.invoiceService.countByUser(userId);
+    return { count };
   }
-
   // Obtener el total recaudado de todas las facturas
   @Get('invoice/total')
   @UseGuards(JwtAuthGuard)
   async getTotalRecaudado(@Request() req) {
-    const userId = req.user.sub; // Extrae el ID del usuario desde el JWT
+    const userId = req.user._id; // Extrae el ID del usuario desde el JWT
 
     // Obtener todas las facturas del usuario logueado
     const invoices = await this.invoiceService.findAllByUser(userId);
@@ -71,19 +45,37 @@ export class DashboardController {
   @Get('invoice/status/completed')
   @UseGuards(JwtAuthGuard)
   async getEmitidas(@Request() req) {
-    const userId = req.user.sub; // Extrae el ID del usuario desde el JWT
+    const userId = req.user._id; // Extrae el ID del usuario desde el JWT
 
     // Obtener facturas emitidas por el usuario logueado
-    return this.invoiceService.findByStatusAndUser('completed');
+    return this.invoiceService.findByStatusAndUser(userId, 'completed');
   }
 
   // Obtener facturas con estado "no emitido"
   @Get('invoice/status/pending')
   @UseGuards(JwtAuthGuard)
   async getNoEmitidas(@Request() req) {
-    const userId = req.user.sub; // Extrae el ID del usuario desde el JWT
+    const userId = req.user._id; // Extrae el ID del usuario desde el JWT
 
     // Obtener facturas no emitidas por el usuario logueado
-    return this.invoiceService.findByStatusAndUser('pending');
+    return this.invoiceService.findByStatusAndUser(userId, 'pending');
+  }
+
+  // Obtener toda la factura por ID
+  @Get('invoice/:id')
+  @UseGuards(JwtAuthGuard)
+  async findInvoice(@Param('id') id: string, @Request() req) {
+    const invoice = await this.invoiceService.findOne(id); // Ahora busca por el ID de la factura
+
+    if (!invoice) {
+      throw new NotFoundException(`Factura con ID ${id} no encontrada`);
+    }
+
+    // Verifica que la factura pertenezca al usuario autenticado
+    if (invoice.issuerId.toString() !== req.user._id.toString()) {
+      throw new UnauthorizedException('No puedes acceder a esta factura');
+    }
+
+    return invoice;
   }
 }

@@ -59,21 +59,25 @@ export class InvoiceController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard)
   async findAll() {
     return this.invoiceService.findAll();
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard) 
   async findOne(@Param('id') id: string) { // Asegúrate de que 'id' sea string
     return this.invoiceService.findOne(id);
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
   async update(@Param('id') id: string, @Body() updateInvoiceDto: UpdateInvoiceDto) { // Asegúrate de que 'id' sea string
     return this.invoiceService.update(id, updateInvoiceDto);
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
   async remove(@Param('id') id: string) { // Asegúrate de que 'id' sea string
     return this.invoiceService.remove(id);
   }

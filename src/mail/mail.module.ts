@@ -3,39 +3,30 @@
 import { Module } from '@nestjs/common';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { MailService } from './mail.service';
-import { ConfigService } from '@nestjs/config';
+import { ConfigService, ConfigModule } from '@nestjs/config'; // Asegúrate que ConfigModule esté importado si MailService lo necesita
 
 @Module({
   imports: [
     MailerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const mailConfig = configService.get<{
-          mailHost: string;
-          mailPort: number;
-          mailUser: string;
-          mailPass: string;
-          mailfrom: string;
-        }>('mail');
         return {
           transport: {
-            host:
-              mailConfig?.mailHost ??
-              (() => {
-                throw new Error('Mail configuration is missing');
-              })(),
-            port: mailConfig.mailPort,
+            host: configService.get<string>('MAIL_HOST'),
+            port: configService.get<number>('MAIL_PORT'),
+            secure: configService.get<string>('MAIL_SECURE') === 'true', // ← importante
             auth: {
-              user: mailConfig.mailUser,
-              pass: mailConfig.mailPass,
+              user: configService.get<string>('MAIL_USER'),
+              pass: configService.get<string>('MAIL_PASS'),
             },
           },
           defaults: {
-            from: mailConfig.mailfrom,
+            from: configService.get<string>('MAIL_FROM'),
           },
         };
       },
     }),
+    ConfigModule, // Importa ConfigModule si MailService inyecta ConfigService
   ],
   providers: [MailService],
   exports: [MailService],
