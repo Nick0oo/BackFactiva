@@ -11,6 +11,9 @@ import { DashboardModule } from './dashboard/dashboard.module';
 
 import * as config from './config';
 import { RolesModule } from './users/roles/roles.module';
+import { FactusService } from './factus/factus.service';
+import { FactusModule } from './factus/factus.module';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [
@@ -33,8 +36,10 @@ import { RolesModule } from './users/roles/roles.module';
     MailModule,
     MfaModule,
     RolesModule,
+    FactusModule,
+    HttpModule
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, FactusService],
 })
 export class AppModule {}

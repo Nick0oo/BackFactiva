@@ -2,21 +2,58 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Invoice } from './entities/invoice.entity';
 import { InvoiceDocument } from './entities/invoice.entity';
+import { UnitMeasureService } from '../../factus/catalogos/unit-measure/unit-measure.service';
+import { TributeService } from '../../factus/catalogos/tribute/tribute.service';
+import { StandardCodeService } from '../../factus/catalogos/standard-code/standard-code.service';
 
 @Injectable()
 export class InvoiceService {
   constructor(
     @InjectModel(Invoice.name) private readonly invoiceModel: Model<InvoiceDocument>,
   ) {}
-
   
-  async create(createInvoiceDto: CreateInvoiceDto): Promise<InvoiceDocument> {
-    
+  async create(createInvoiceDto: CreateInvoiceDto): Promise<InvoiceDocument> { 
     const createdInvoice = new this.invoiceModel(createInvoiceDto);
     return await createdInvoice.save();
+  }
+  
+  async findOneWithDetails(id: string): Promise<any> { // Ajusta el tipo de retorno según necesites
+    const invoiceDoc = await this.invoiceModel
+      .findById(id)
+      .populate('receiverId') // Popula el receptor
+      .populate({             // Popula el producto DENTRO de cada item
+        path: 'items.productId',
+        model: 'Product'      // Asegúrate que 'Product' es el nombre correcto
+      })
+      // .lean() // Puedes añadir .lean() si prefieres objetos planos
+      .exec();
+
+    if (!invoiceDoc) {
+      throw new NotFoundException(`Factura ${id} no encontrada`);
+    }
+
+    // Convierte a objeto plano si no usaste .lean()
+    const invoice = invoiceDoc.toObject ? invoiceDoc.toObject() : invoiceDoc;
+
+    // Opcional: Renombra receiverId a receiver si FactusService lo espera así
+    // (Asegúrate que FactusService lea de invoice.receiver y no invoice.receiverId)
+    return {
+      ...invoice,
+      receiver: invoice.receiverId,
+     };
+  }
+
+  async saveValidationResult(_id: Types.ObjectId, result: any): Promise<InvoiceDocument> {
+    const updatedInvoice = await this.invoiceModel
+      .findByIdAndUpdate(_id, { $set: { factusValidation: result } }, { new: true })
+      .exec();
+    if (!updatedInvoice) {
+      throw new NotFoundException(`Invoice with ID ${_id} not found`);
+    }
+    return updatedInvoice;
   }
 
   async findAll(): Promise<InvoiceDocument[]> {
@@ -34,7 +71,6 @@ export class InvoiceService {
     return this.invoiceModel.countDocuments({ issuerId: _id }).exec();
   }
   
-
   async update(id: string, updateInvoiceDto: UpdateInvoiceDto): Promise<InvoiceDocument> {
     const updatedInvoice = await this.invoiceModel.findByIdAndUpdate(
       id,
@@ -54,8 +90,12 @@ export class InvoiceService {
     }
   }
 
-  async findAllByUser(_id: string): Promise<Invoice[]> {
-    return this.invoiceModel.find({ issuerId: _id }).exec();
+  async findAllByUser(id: string): Promise<InvoiceDocument[]> {
+    return this.invoiceModel
+      .find({ issuerId: id })
+      .populate('receiverId', 'name')    // <— agrega esto
+      .lean()
+      .exec();
   }
   // Obtener facturas por estado y usuario
   async findByStatusAndUser(_id: string, status: string): Promise<Invoice[]> {

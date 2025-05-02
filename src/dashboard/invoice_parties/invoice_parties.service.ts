@@ -6,7 +6,6 @@ import { Model } from 'mongoose';
 import { InvoiceParty } from './entities/invoice_party.entity';
 import { InvoicePartyDocument } from './entities/invoice_party.entity';
 
-
 @Injectable()
 export class InvoicePartiesService {
   constructor(
@@ -14,6 +13,11 @@ export class InvoicePartiesService {
   ) {}
 
   async create(createInvoicePartyDto: CreateInvoicePartyDto): Promise<InvoicePartyDocument> {
+    // validar id municipio
+    const municipality = await this.invoicePartyModel.findById(createInvoicePartyDto.municipality_id).exec();
+    if (!municipality) {
+      throw new NotFoundException(`Municipality with ID ${createInvoicePartyDto.municipality_id} not found`);
+    }
     const createdInvoiceParty = new this.invoicePartyModel(createInvoicePartyDto);
     return await createdInvoiceParty.save();
   }

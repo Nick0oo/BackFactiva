@@ -71,11 +71,6 @@ export class DashboardController {
       throw new NotFoundException(`Factura con ID ${id} no encontrada`);
     }
 
-    // Verifica que la factura pertenezca al usuario autenticado
-    if (invoice.issuerId.toString() !== req.user._id.toString()) {
-      throw new UnauthorizedException('No puedes acceder a esta factura');
-    }
-
     return invoice;
   }
 }

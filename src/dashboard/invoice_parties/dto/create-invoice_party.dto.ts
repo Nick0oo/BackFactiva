@@ -4,52 +4,22 @@ import {
   IsString,
   IsNotEmpty,
   IsOptional,
+  IsNumber,
 
 } from 'class-validator';
 
-
-export class AddressDto {
-  @IsString()
-  @IsNotEmpty()
-  street: string;
-
-  @IsString()
-  @IsNotEmpty()
-  city: string;
-
-  @IsString()
-  @IsNotEmpty()
-  state: string;
-
-  @IsString()
-  @IsNotEmpty()
-  country: string;
-
-}
-
 export class CreateInvoicePartyDto {
-  @IsString({ message: 'El tipo de entidad debe ser una cadena de texto' })
-  @IsString({ message: 'El nombre debe ser una cadena de texto' })
-  @IsNotEmpty({ message: 'El nombre es requerido' })
-  name: string;
-
- 
-  @IsString({ message: 'La identificacion debe ser una cadena de texto' })
-  @IsNotEmpty({ message: 'La identificacion es requerida' })
-  identificacion: string;
-
-  @IsNotEmpty({ message: 'La dirección es requerida' })
-  address: AddressDto;
-
-  @IsEmail({}, { message: 'El email debe ser válido' })
-  @IsNotEmpty({ message: 'El email es requerido' })
-  email: string;
-
-  @IsString({ message: 'El teléfono debe ser una cadena de texto' })
-  @IsOptional()
-  phone?: string;
-
-
+  @IsNotEmpty() @IsString() identification: string;
+  @IsOptional() @IsNumber() dv?: number;
+  @IsOptional() @IsString() company?: string;
+  @IsOptional() @IsString() trade_name?: string;
+  @IsNotEmpty() @IsString() names: string;
+  @IsNotEmpty() @IsString() address: string;
+  @IsNotEmpty() @IsEmail() email: string;
+  @IsNotEmpty() @IsString() phone: string;
+  @IsNotEmpty() @IsNumber() legal_organization_id: number;
+  @IsNotEmpty() @IsNumber() tribute_id: number;
+  @IsNotEmpty() @IsNumber() identification_document_id: number;
+  @IsNotEmpty() @IsNumber() municipality_id: number;
 }
-
 

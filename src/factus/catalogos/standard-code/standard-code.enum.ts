@@ -1,0 +1,103 @@
+
+export enum InvoiceDocumentType {
+  FACTURA_ELECTRONICA_VENTA = '01',
+  INSTRUMENTO_ELECTRONICO = '03',
+}
+
+export enum CorrectionCode {
+  DEVOLUCION_O_NO_ACEPTACION = 1,
+  ANULACION_FACTURA = 2,
+  REBAJA_DESCUENTO = 3,
+  AJUSTE_PRECIO = 4,
+  DESCUENTO_PRONTO_PAGO = 5,
+  DESCUENTO_POR_VOLUMEN = 6,
+}
+
+export enum OperationType {
+  NOTA_CREDITO_REFERENCIA_FACTURA = 20,
+  NOTA_CREDITO_SIN_REFERENCIA = 22,
+}
+
+export enum StandardCodeType {
+  ADOPCION_CONTRIBUYENTE = 1,
+  UNSPSC = 2,
+  PARTIDA_ARANCELARIA = 3,
+  GTIN = 4,
+}
+
+export enum ClaimConcept {
+  DOCUMENTO_INCONSISTENTE = 1,
+  MERCANCIA_NO_ENTREGADA = 2,
+  MERCANCIA_ENTREGADA_PARCIAL = 3,
+  SERVICIO_NO_PRESTADO = 4,
+}
+
+export enum EventCode {
+  ACUSE_RECIBO_FACTURA = '030',
+  RECLAMO_FACTURA = '031',
+  RECIBO_BIEN_O_SERVICIO = '032',
+  ACEPTACION_EXPRESA = '033',
+  ACEPTACION_TACITA = '034',
+}
+
+export enum IdentityDocumentType {
+  REGISTRO_CIVIL = 1,
+  TARJETA_IDENTIDAD = 2,
+  CEDULA_CIUDADANIA = 3,
+  TARJETA_EXTRANJERIA = 4,
+  CEDULA_EXTRANJERIA = 5,
+  NIT = 6,
+  PASAPORTE = 7,
+  DOCUMENTO_EXTRANJERO = 8,
+  PEP = 9,
+  NIT_OTRO_PAIS = 10,
+  NUIP = 11,
+}
+
+export enum CustomerTributeId {
+  IVA = 18,
+  NO_APLICA = 21,
+}
+
+export enum OrganizationType {
+  PERSONA_JURIDICA = 1,
+  PERSONA_NATURAL = 2,
+}
+
+export enum PaymentMethodCode {
+  MEDIO_NO_DEFINIDO = 1,
+  EFECTIVO = 10,
+  CHEQUE = 20,
+  CONSIGNACION = 42,
+  TRANSFERENCIA = 47,
+  TARJETA_CREDITO = 48,
+  TARJETA_DEBITO = 49,
+  BONOS = 71,
+  VALES = 72,
+  OTRO = 'ZZZ',
+}
+
+export enum PaymentFormCode {
+  CONTADO = 1,
+  CREDITO = 2,
+}
+
+export enum DocumentRangeType {
+  FACTURA_VENTA = 21,
+  NOTA_CREDITO = 22,
+  NOTA_DEBITO = 23,
+  DOCUMENTO_SOPORTE = 24,
+  NOTA_AJUSTE_SOPORTE = 25,
+  NOMINA = 26,
+  NOTA_AJUSTE_NOMINA = 27,
+  ELIMINACION_NOMINA = 28,
+  FACTURA_PAPEL = 30,
+}
+
+export enum NoteReasonCode {
+  DEVOLUCION_O_NO_ACEPTACION = 1,
+  ANULACION_DOCUMENTO_SOPORTE = 2,
+  REBAJA_DESCUENTO = 3,
+  AJUSTE_PRECIO = 4,
+  OTROS = 5,
+}
