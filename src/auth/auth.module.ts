@@ -11,6 +11,7 @@ import { AuthController } from './controllers/auth.controller';
 import { MailModule } from '../mail/mail.module';
 import { MfaModule } from 'src/mfa/mfa.module';
 import { JwtConfigModule } from 'src/jwt/jwt.module';
+import { SessionController } from './controllers/session.controller';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { JwtConfigModule } from 'src/jwt/jwt.module';
     JwtConfigModule,
     MailModule,
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, SessionController],
   providers: [AuthService, JwtStrategy, LocalStrategy, GoogleStrategy],
   exports: [AuthService],
 })

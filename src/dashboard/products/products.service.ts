@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Product } from './entities/product.entity';
 import { ProductDocument } from './entities/product.entity';
 
@@ -48,11 +48,16 @@ export class ProductsService {
     }
   }
 
-   async verifyProductExists(productId: string): Promise<boolean> {
-    const product = await this.productModel.findById(productId).exec();
-    if (!product) {
-      throw new NotFoundException(`Product with ID ${productId} not found`);
+  async verifyProductExists(id: string): Promise<boolean> { // <-- Cambiado a string
+    // Verifica si el string es un ObjectId válido antes de consultar
+    if (!Types.ObjectId.isValid(id)) {
+        throw new NotFoundException(`Invalid ID format: ${id}`);
     }
-    return true;
+    const product = await this.productModel.findById(id).exec(); // Busca por string ID
+    if (!product) {
+      // Lanza excepción si no se encuentra
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+    return true; // Devuelve true si se encuentra
   }
 }

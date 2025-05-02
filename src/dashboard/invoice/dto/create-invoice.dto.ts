@@ -1,58 +1,46 @@
-// src/dashboard/invoice/dto/create-invoice.dto.ts
-import { IsNotEmpty, IsNumber, IsString, IsMongoId, IsArray, ValidateNested } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  IsMongoId,
+  IsArray,
+  ValidateNested,
+  IsOptional,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { IsOptional } from 'class-validator'; // Importar IsOptional para usarlo en el DTO
+import { InvoiceItemDto } from './create-invoice-item.dto';
+import { CreateInvoicePartyDto } from '../../invoice_parties/dto/create-invoice_party.dto';
 
-export class InvoiceItemDto {
+export class WithholdingTaxDto {
   @IsNotEmpty()
-  @IsMongoId()
-  productId: string;
-
-  @IsNotEmpty()
-  @IsNumber()
-  quantity: number;
+  @IsString()
+  code: string;
 
   @IsNotEmpty()
   @IsNumber()
-  unitPrice: number;
-
-  @IsNotEmpty()
-  @IsNumber()
-  totalPrice: number;
+  withholding_tax_rate: number;
 }
 
+
 export class CreateInvoiceDto {
+  @IsNotEmpty() @IsNumber() numbering_range_id: number;
+  @IsNotEmpty() @IsString() reference_code: string;
 
-  @IsOptional()
-@IsMongoId()
-issuerId?: string;
-
+  @IsOptional() @IsString() observation?: string;
+  @IsNotEmpty() @IsNumber() payment_method_code: number;
+  @IsNotEmpty() @IsNumber() totalAmount: number; // Total de la factura (suma de todos los items)
+  
   @IsNotEmpty()
-  @IsMongoId() // Para la relación con el receptor
-  receiverId: string;
-
+  @IsMongoId()
+  receiverId: CreateInvoicePartyDto; // Receptor
+  
   @IsNotEmpty()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => InvoiceItemDto)
   items: InvoiceItemDto[];
 
-  @IsNotEmpty()
-  @IsNumber()
-  subtotal: number;
-
-  @IsNotEmpty()
-  @IsNumber()
-  tax: number;
-
-  @IsNotEmpty()
-  @IsNumber()
-  total: number;
-
-  @IsString()
-  status: string;
-
-  @IsString()
-  notes: string;
-
+  @IsOptional() @IsMongoId() issuerId?: string;
+  @IsOptional() @IsString() notes?: string;
+  @IsOptional() @IsString() status?: string;
 }

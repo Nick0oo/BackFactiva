@@ -5,22 +5,28 @@ export type ProductDocument = Product & Document;
 
 @Schema()
 export class Product {
-  @Prop()
-  name: string;
+  @Prop({ required: true })
+  code_reference: string; // Código de referencia del producto
+
+  @Prop({ required: true })
+  name: string; // Nombre del producto
+
+  @Prop({ required: true })
+  price: number; // Precio del producto
+
+  @Prop({ required: true })
+  unit_measure: number; // Unidad de medida (ej. "kg", "unidad", etc.)
+
+  @Prop({ required: true })
+  standard_code_id: number; // Código estándar del producto, por ejemplo, un código del producto o servicio
+
+  @Prop({ default: 0 })
+  stock_quantity: number; // Cantidad disponible en inventario
 
   @Prop()
-  description: string;
+  description?: string; // Descripción opcional del producto
 
-  @Prop()
-  price: number;
-
-  @Prop()
-  tax: number; // Impuesto aplicado (ej: 0.19 para 19%)
-
-  @Prop()
-  unit: string; // Unidad de medida (ej: kg, unidad, etc.)
-
-  // Puedes añadir otros campos específicos de tu entidad Product si son necesarios
+  @Prop({ default: true })
+  is_active: boolean; // Indica si el producto está activo o no
 }
-
 export const ProductSchema = SchemaFactory.createForClass(Product);

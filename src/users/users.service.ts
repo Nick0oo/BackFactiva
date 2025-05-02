@@ -220,5 +220,22 @@ async getUserIdFromToken(token: string): Promise<string> {
     throw new UnauthorizedException('Token inválido o expirado');
   }
 }
+async getProfile(userId: string): Promise<{ name: string; role: string }> {
+  const user = await this.userModel
+    .findById(userId)
+    .populate('roles', 'name') // <- probablemente debería ser 'roles'
+    .lean()
+    .exec();
 
+  if (!user) {
+    throw new NotFoundException('User not found');
+  }
+
+  // Maneja roles como array si es así en tu schema
+  const roleName = user.roles && user.roles.length > 0
+    ? (user.roles[0] as any).name  // toma el primer rol
+    : 'Sin rol';
+
+  return { name: user.name, role: roleName };
+}
 }

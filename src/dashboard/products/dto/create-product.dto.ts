@@ -1,25 +1,9 @@
-// src/dashboard/products/dto/create-product.dto.ts
 import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class CreateProductDto {
-  @IsNotEmpty()
-  @IsString()
-  name: string;
-
-  @IsString()
-  description: string;
-
-  @IsNotEmpty()
-  @IsNumber()
-  price: number;
-
-  @IsNotEmpty()
-  @IsNumber()
-  tax: number; // Impuesto aplicado (ej: 0.19 para 19%)
-
-  @IsNotEmpty()
-  @IsString()
-  unit: string; // Unidad de medida (ej: kg, unidad, etc.)
-
-  // Puedes añadir otras propiedades si son necesarias
+  @IsNotEmpty() @IsString() code_reference: string;  // Código de referencia del producto
+  @IsNotEmpty() @IsString() name: string;  // Nombre del producto
+  @IsNotEmpty() @IsNumber() price: number;  // Precio base del producto
+  @IsNotEmpty() @IsNumber() unit_measure: number;  // Unidad de medida (como "kg", "unidad", etc.)
+  @IsNotEmpty() @IsNumber() standard_code_id: number;  // Código estándar del producto (puede ser un código de clasificación)
 }
