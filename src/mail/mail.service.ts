@@ -90,14 +90,35 @@ export class MailService {
     }
     const resetUrl = `${frontendBaseUrl}/reset-password?token=${token}`;
 
-    const subject = 'Recupera tu contraseña';
-    const html = `<p>Recibiste este correo porque solicitaste restablecer tu contraseña.</p>
-                  <p>Haz clic en el siguiente enlace para continuar:</p>
-                  <a href="${resetUrl}" target="_blank" style="padding: 10px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Restablecer mi contraseña</a>
-                  <p>Si no solicitaste esto, puedes ignorar este correo.</p>
-                  <p>El enlace expirará en 15 minutos.</p>`;
-    const text = `Recibiste este correo porque solicitaste restablecer tu contraseña. Copia y pega este enlace en tu navegador para continuar: ${resetUrl} Si no solicitaste esto, puedes ignorar este correo. El enlace expirará en 15 minutos.`;
+    const subject = '🔐 Recupera tu contraseña'
 
+    const html = `
+      <div style="background-color: #121212; color: #e0e0e0; font-family: Arial, sans-serif; padding: 40px 20px; max-width: 600px; margin: auto; border-radius: 10px;">
+        <h2 style="color: #ffffff; text-align: center;">Recuperación de contraseña</h2>
+        <p style="font-size: 16px; line-height: 1.5;">
+          Hola, has recibido este correo porque solicitaste restablecer tu contraseña.
+        </p>
+        <p style="font-size: 16px; line-height: 1.5;">
+          Haz clic en el siguiente botón para continuar con el proceso:
+        </p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetUrl}" target="_blank" style="padding: 12px 24px; background-color: #1f1f1f; color: #ffffff; text-decoration: none; border: 1px solid #444; border-radius: 6px; display: inline-block; font-weight: bold;">
+            Restablecer mi contraseña
+          </a>
+        </div>
+        <p style="font-size: 14px; color: #aaaaaa;">
+          Si tú no realizaste esta solicitud, puedes ignorar este mensaje. Este enlace expirará en 15 minutos por razones de seguridad.
+        </p>
+        <hr style="border: none; border-top: 1px solid #333; margin: 30px 0;" />
+        <p style="font-size: 12px; color: #555555; text-align: center;">
+          © ${new Date().getFullYear()} FACTIVA. Todos los derechos reservados.
+        </p>
+      </div>
+    `
+    
+    const text = `Recibiste este correo porque solicitaste restablecer tu contraseña.
+    Copia y pega este enlace en tu navegador para continuar: ${resetUrl}
+    Si no solicitaste esto, puedes ignorar este correo. El enlace expirará en 15 minutos.`
     await this.sendMail({ to: email, subject, html, text });
   }
 }

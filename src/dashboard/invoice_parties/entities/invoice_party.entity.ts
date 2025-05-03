@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export type InvoicePartyDocument = InvoiceParty & Document;
 
@@ -41,6 +41,9 @@ export class InvoiceParty {
   // Este campo proviene de AddressService (folder address)
   @Prop({ required: true })
   municipality_id: number;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true }) // Añade esta línea
+  issuerId: Types.ObjectId;
 }
 
 export const InvoicePartySchema = SchemaFactory.createForClass(InvoiceParty);

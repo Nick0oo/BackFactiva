@@ -12,13 +12,18 @@ export class ProductsService {
     @InjectModel(Product.name) private readonly productModel: Model<ProductDocument>,
   ) {}
 
-  async create(createProductDto: CreateProductDto): Promise<ProductDocument> {
-    const createdProduct = new this.productModel(createProductDto);
+  async create(createProductDto: CreateProductDto, issuerId): Promise<ProductDocument> {
+    const productData = { ...createProductDto, issuerId };
+    const createdProduct = new this.productModel(productData);
     return await createdProduct.save();
   }
 
   async findAll(): Promise<ProductDocument[]> {
     return await this.productModel.find().exec();
+  }
+
+  async findAllByUser(userId: string): Promise<ProductDocument[]> {
+    return this.productModel.find({ issuerId: userId }).exec();
   }
 
   async findOne(id: string): Promise<ProductDocument> {

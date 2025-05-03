@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export type ProductDocument = Product & Document;
 
@@ -28,5 +28,9 @@ export class Product {
 
   @Prop({ default: true })
   is_active: boolean; // Indica si el producto está activo o no
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true }) // Añade esta línea
+  issuerId: Types.ObjectId; // ID del usuario que creó el producto
+
 }
 export const ProductSchema = SchemaFactory.createForClass(Product);

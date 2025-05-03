@@ -214,11 +214,7 @@ export class AuthService {
       const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:4000';
       const resetLink = `${frontendUrl}/auth/reset-password?token=${token}`;
 
-      await this.mailService.sendMail({
-        to: user.email,
-        subject: 'Restablece tu contraseña',
-        text: `Haz clic aquí para restablecer tu contraseña: ${resetLink}`,
-      });
+      await this.mailService.sendResetPasswordEmail(user.email, token);
     } catch (error) {
       console.error('Error forgotPassword:', error);
       throw new InternalServerErrorException('Error al procesar la solicitud de restablecimiento');

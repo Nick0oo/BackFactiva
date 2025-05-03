@@ -12,16 +12,18 @@ export class InvoicePartiesService {
     @InjectModel(InvoiceParty.name) private readonly invoicePartyModel: Model<InvoicePartyDocument>,
   ) {}
 
-  async create(createInvoicePartyDto: CreateInvoicePartyDto): Promise<InvoicePartyDocument> {
+  async create(createInvoicePartyDto: CreateInvoicePartyDto, issuerId): Promise<InvoicePartyDocument> {
     // validar id municipio
-    const municipality = await this.invoicePartyModel.findById(createInvoicePartyDto.municipality_id).exec();
-    if (!municipality) {
-      throw new NotFoundException(`Municipality with ID ${createInvoicePartyDto.municipality_id} not found`);
-    }
-    const createdInvoiceParty = new this.invoicePartyModel(createInvoicePartyDto);
+   
+    const partyData = { ...createInvoicePartyDto, issuerId };
+    const createdInvoiceParty = new this.invoicePartyModel(partyData);
     return await createdInvoiceParty.save();
   }
 
+  async findAllByUser(userId: string): Promise<InvoicePartyDocument[]> {
+    return this.invoicePartyModel.find({ issuerId: userId }).exec();
+  }
+  
   async findAll(): Promise<InvoicePartyDocument[]> {
     return await this.invoicePartyModel.find().exec();
   }
