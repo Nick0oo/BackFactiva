@@ -92,8 +92,6 @@ export class AuthController {
       user._id as string,
       hashedRefreshToken,
     );
-    console.log('Access Token:', accessToken);
-    console.log('Refresh Token:', refreshToken);
     // Devolver respuesta
     return {
       user: {

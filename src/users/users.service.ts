@@ -212,7 +212,6 @@ export class UsersService {
 
 async getUserIdFromToken(token: string): Promise<string> {
   try {
-    console.log('Token:', token); // Log para verificar el token recibido
     const decoded = this.jwtService.verify(token);
     const userId = decoded.sub; // 'sub' es la convención para el ID del usuario en JWT
     return userId;
