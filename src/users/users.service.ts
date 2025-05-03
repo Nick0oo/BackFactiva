@@ -7,7 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { MongoError } from 'mongodb';
 import { UnauthorizedException } from '@nestjs/common/exceptions/unauthorized.exception';
-import { Req } from '@nestjs/common/decorators/http/route-params.decorator';
+import { InternalServerErrorException } from '@nestjs/common/exceptions/internal-server-error.exception';
 
 @Injectable()
 export class UsersService {
@@ -137,16 +137,21 @@ export class UsersService {
     return undefined;
   }
 
-  async updatePassword(userId: string, newPassword: string): Promise<User> {
-    const user = await this.userModel.findById(userId).exec();
-    if (!user) {
-      throw new Error('Usuario no encontrado');
+  async updatePassword(userId: string, newHashedPassword: string): Promise<UserDocument | null> {
+    try {
+      const user = await this.userModel.findById(userId);
+      if (!user) {
+        console.error(`Usuario no encontrado para actualizar contraseña: ${userId}`);
+        return null;
+      }
+      user.password = newHashedPassword; // Asigna el nuevo hash
+      await user.save(); // ¡Guarda el cambio!
+      console.log(`Contraseña actualizada para usuario: ${userId}`);
+      return user;
+    } catch (error) {
+      console.error(`Error al actualizar contraseña para ${userId}:`, error);
+      throw new InternalServerErrorException('Error al actualizar la contraseña');
     }
-
-    // Hashear la nueva contraseña
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
-    return user.save();
   }
 
   async deleteResetToken(token: string): Promise<void> {

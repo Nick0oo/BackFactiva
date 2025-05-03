@@ -1,4 +1,3 @@
-// filepath: <tu-proyecto-backend>/src/mail/mail.service.ts
 import {
   Injectable,
   Logger,

@@ -20,7 +20,7 @@ export class TributeService implements OnModuleInit {
   }
 
   async syncFromFactus() {
-    try {
+  /*  try {
       const { data } = await firstValueFrom(
         this.httpService.get('https://api-sandbox.factus.com.co/v1/tributes/products?name=')
       );
@@ -38,7 +38,7 @@ export class TributeService implements OnModuleInit {
       console.log('✔️ tributos sincronizadas desde Factus');
     } catch (error) {
       console.error('❌ Error al sincronizar tributos', error.message);
-    }
+    }*/
   }
 
   findAll() {

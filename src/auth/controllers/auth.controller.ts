@@ -69,7 +69,7 @@ export class AuthController {
     if (!user.password) {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
-    const passwordMatch = await bcrypt.compare(user.password, body.password); // Si usas argon2
+    const passwordMatch = await bcrypt.compare(body.password, user.password);
     if (!passwordMatch) {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
