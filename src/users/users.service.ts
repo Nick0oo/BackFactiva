@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { MongoError } from 'mongodb';
 import { UnauthorizedException } from '@nestjs/common/exceptions/unauthorized.exception';
+import { Req } from '@nestjs/common/decorators/http/route-params.decorator';
 
 @Injectable()
 export class UsersService {
@@ -14,7 +15,7 @@ export class UsersService {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel('Role') private roleModel: Model<any>, // Replace 'any' with the appropriate RoleDocument type if available
     private readonly jwtService: JwtService, // Inject JwtService
-  ) {}
+  ) { }
 
   async create(createUserDto: CreateUserDto): Promise<Omit<User, 'password'>> {
     try {
@@ -29,7 +30,7 @@ export class UsersService {
         password: hashedPassword,
         roles: [userRole?._id],
       });
-      
+
       const savedUser = await user.save();
       const { ...userWithoutPassword } = savedUser.toObject();
       return userWithoutPassword;
@@ -117,16 +118,18 @@ export class UsersService {
 
   async findResetToken(
     token: string,
-  ): Promise<{ token: string; expires: Date } | undefined> {
+  ): Promise<{ userId: string, token: string; expires: Date } | undefined> {
     const user = await this.userModel
-      .findOne({ resetPasswordToken: token })
-      .exec();
+      .findOne({ resetPasswordToken: token, resetTokenExpires: { $gt: new Date() } })
+      .exec() as UserDocument | null;
     if (
       user &&
       user.resetTokenExpires &&
       new Date(user.resetTokenExpires) > new Date()
     ) {
+
       return {
+        userId: (user._id as Types.ObjectId).toString(),
         token: user.resetPasswordToken ?? '',
         expires: new Date(user.resetTokenExpires),
       };
@@ -202,39 +205,39 @@ export class UsersService {
 
   async findUserByToken(token: string): Promise<UserDocument | null> {
     try {
-        const decoded = this.jwtService.verify(token);
-        const userId = decoded.sub;
-        return this.findById(userId);
+      const decoded = this.jwtService.verify(token);
+      const userId = decoded.sub;
+      return this.findById(userId);
     } catch (error) {
-        return null;
+      return null;
     }
-}
-
-async getUserIdFromToken(token: string): Promise<string> {
-  try {
-    const decoded = this.jwtService.verify(token);
-    const userId = decoded.sub; // 'sub' es la convención para el ID del usuario en JWT
-    return userId;
-  } catch (error) {
-    throw new UnauthorizedException('Token inválido o expirado');
-  }
-}
-async getProfile(userId: string): Promise<{ name: string; role: string }> {
-  const user = await this.userModel
-    .findById(userId)
-    .populate('roles', 'name') // <- probablemente debería ser 'roles'
-    .lean()
-    .exec();
-
-  if (!user) {
-    throw new NotFoundException('User not found');
   }
 
-  // Maneja roles como array si es así en tu schema
-  const roleName = user.roles && user.roles.length > 0
-    ? (user.roles[0] as any).name  // toma el primer rol
-    : 'Sin rol';
+  async getUserIdFromToken(token: string): Promise<string> {
+    try {
+      const decoded = this.jwtService.verify(token);
+      const userId = decoded.sub; // 'sub' es la convención para el ID del usuario en JWT
+      return userId;
+    } catch (error) {
+      throw new UnauthorizedException('Token inválido o expirado');
+    }
+  }
+  async getProfile(userId: string): Promise<{ name: string; role: string }> {
+    const user = await this.userModel
+      .findById(userId)
+      .populate('roles', 'name') // <- probablemente debería ser 'roles'
+      .lean()
+      .exec();
 
-  return { name: user.name, role: roleName };
-}
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Maneja roles como array si es así en tu schema
+    const roleName = user.roles && user.roles.length > 0
+      ? (user.roles[0] as any).name  // toma el primer rol
+      : 'Sin rol';
+
+    return { name: user.name, role: roleName };
+  }
 }

@@ -97,11 +97,8 @@ export class AuthService {
       password.trim(),
       user.password,
     );
-    if (!isPasswordValid) {
-      return null;
-    }
+    return isPasswordValid ? user : null;
 
-    return user;
   }
 
   generateJwt(user: { _id: string; email: string }, mfa: boolean = false): string {

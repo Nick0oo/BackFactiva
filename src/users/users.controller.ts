@@ -8,12 +8,10 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  getProfile(
-    @Req() req: { user: { _id: string; name: string; email: string } },
-  ): { _id: string; name: string; email: string } {
-    return req.user;
+  async getProfile(@Req() req: any) {
+    const userId = req.user._id; // obtén el ID del usuario del token
+    return this.usersService.getProfile(userId); // llama a tu nuevo método
   }
-
   @Get()
   async findAll() {
     return this.usersService.findAll();
