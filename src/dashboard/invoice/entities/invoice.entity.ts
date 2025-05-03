@@ -13,9 +13,6 @@ class InvoiceItem {
   total_Price: number; // Precio total para esta línea (quantity * price + tax - discount)
 
   @Prop({ default: 0 })
-  discount?: number;
-
-  @Prop({ default: 0 })
   discount_rate?: number;
 
   @Prop({ required: true })

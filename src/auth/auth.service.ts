@@ -108,7 +108,6 @@ export class AuthService {
     const secret = this.configService.get<string>('JWT_SECRET');
     const expiresIn = this.configService.get<string>('JWT_EXPIRATION') || '15m';
     if (!secret) {
-      console.error('!!! ERROR: JWT_SECRET no está definido en la configuración.');
       throw new InternalServerErrorException('Error de configuración del servidor.');
     }
     const payload = {
@@ -126,7 +125,6 @@ export class AuthService {
     // Asegúrate que REFRESH_EXPIRATION esté en tu .env, si no usa '7d'
     const expiresIn = this.configService.get<string>('REFRESH_EXPIRATION') || '7d';
     if (!secret) {
-      console.error('!!! ERROR: REFRESH_SECRET no está definido.');
       throw new InternalServerErrorException('Error de configuración del servidor.');
     }
     // Usa JwtService para firmar
@@ -138,8 +136,6 @@ export class AuthService {
     try {
       const secret = this.configService.get<string>('REFRESH_SECRET');
       if (!secret) {
-        // Lanza excepción si el secreto no está configurado para evitar fallos silenciosos
-        console.error('!!! ERROR: REFRESH_SECRET no está definido para verificación.');
         throw new InternalServerErrorException('Error de configuración del servidor.');
       }
       // Usa la verificación de JwtService

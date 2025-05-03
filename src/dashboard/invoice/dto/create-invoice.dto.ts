@@ -28,7 +28,7 @@ export class CreateInvoiceDto {
 
   @IsOptional() @IsString() observation?: string;
   @IsNotEmpty() @IsNumber() payment_method_code: number;
-  @IsNotEmpty() @IsNumber() totalAmount: number; // Total de la factura (suma de todos los items)
+  @IsOptional() @IsNumber() totalAmount?: number; // Total de la factura (suma de todos los items)
   
   @IsNotEmpty()
   @IsMongoId()

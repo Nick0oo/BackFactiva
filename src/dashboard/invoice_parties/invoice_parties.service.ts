@@ -20,6 +20,7 @@ export class InvoicePartiesService {
     return await createdInvoiceParty.save();
   }
 
+
   async findAllByUser(userId: string): Promise<InvoicePartyDocument[]> {
     return this.invoicePartyModel.find({ issuerId: userId }).exec();
   }
@@ -65,4 +66,6 @@ export class InvoicePartiesService {
     }
     return true;
   }
+
+  
 }

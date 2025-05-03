@@ -5,9 +5,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Invoice } from './entities/invoice.entity';
 import { InvoiceDocument } from './entities/invoice.entity';
-import { UnitMeasureService } from '../../factus/catalogos/unit-measure/unit-measure.service';
-import { TributeService } from '../../factus/catalogos/tribute/tribute.service';
-import { StandardCodeService } from '../../factus/catalogos/standard-code/standard-code.service';
 
 @Injectable()
 export class InvoiceService {
@@ -20,31 +17,6 @@ export class InvoiceService {
     return await createdInvoice.save();
   }
   
-  async findOneWithDetails(id: string): Promise<any> { // Ajusta el tipo de retorno según necesites
-    const invoiceDoc = await this.invoiceModel
-      .findById(id)
-      .populate('receiverId') // Popula el receptor
-      .populate({             // Popula el producto DENTRO de cada item
-        path: 'items.productId',
-        model: 'Product'      // Asegúrate que 'Product' es el nombre correcto
-      })
-      // .lean() // Puedes añadir .lean() si prefieres objetos planos
-      .exec();
-
-    if (!invoiceDoc) {
-      throw new NotFoundException(`Factura ${id} no encontrada`);
-    }
-
-    // Convierte a objeto plano si no usaste .lean()
-    const invoice = invoiceDoc.toObject ? invoiceDoc.toObject() : invoiceDoc;
-
-    // Opcional: Renombra receiverId a receiver si FactusService lo espera así
-    // (Asegúrate que FactusService lea de invoice.receiver y no invoice.receiverId)
-    return {
-      ...invoice,
-      receiver: invoice.receiverId,
-     };
-  }
 
   async saveValidationResult(_id: Types.ObjectId, result: any): Promise<InvoiceDocument> {
     const updatedInvoice = await this.invoiceModel

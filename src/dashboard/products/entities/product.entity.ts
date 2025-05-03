@@ -20,9 +20,6 @@ export class Product {
   @Prop({ required: true })
   standard_code_id: number; // Código estándar del producto, por ejemplo, un código del producto o servicio
 
-  @Prop({ default: 0 })
-  stock_quantity: number; // Cantidad disponible en inventario
-
   @Prop()
   description?: string; // Descripción opcional del producto
 
