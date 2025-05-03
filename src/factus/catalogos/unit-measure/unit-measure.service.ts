@@ -20,7 +20,7 @@ export class UnitMeasureService implements OnModuleInit {
   }
 
   async syncFromFactus() {
-    try {
+  /*  try {
       const { data } = await firstValueFrom(
         this.httpService.get('https://api-sandbox.factus.com.co/v1/measurement-units')
       );
@@ -38,7 +38,7 @@ export class UnitMeasureService implements OnModuleInit {
       console.log('✔️ Unidades de medida sincronizadas desde Factus');
     } catch (error) {
       console.error('❌ Error al sincronizar unidades de medida', error.message);
-    }
+    }*/
   }
 
   findAll() {
