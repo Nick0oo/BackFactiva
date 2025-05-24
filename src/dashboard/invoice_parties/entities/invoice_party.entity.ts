@@ -5,6 +5,10 @@ export type InvoicePartyDocument = InvoiceParty & Document;
 
 @Schema()
 export class InvoiceParty {
+  
+  @Prop({ required: true })
+  identification_document_id: number;
+  
   @Prop({ required: true })
   identification: string;
 
@@ -36,9 +40,8 @@ export class InvoiceParty {
   tribute_id: number;
 
   @Prop({ required: true })
-  identification_document_id: number;
+  department: string;
 
-  // Este campo proviene de AddressService (folder address)
   @Prop({ required: true })
   municipality_id: number;
 

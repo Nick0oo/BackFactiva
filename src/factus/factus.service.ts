@@ -80,7 +80,6 @@ export class FactusService {
 
       this.accessToken = resp.data.access_token;
       this.refreshToken = resp.data.refresh_token;
-      // calcula expiración en ms
       this.tokenExpiry = Date.now() + resp.data.expires_in * 1000;
     } catch (error: any) {
       console.error('OAuth Error payload:', error.response?.data);

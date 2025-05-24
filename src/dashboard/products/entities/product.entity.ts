@@ -20,6 +20,9 @@ export class Product {
   @Prop({ required: true })
   standard_code_id: number; // Código estándar del producto, por ejemplo, un código del producto o servicio
 
+  @Prop({ required: true })
+  tribute_id: number; // ID del tributo asociado al producto
+
   @Prop()
   description?: string; // Descripción opcional del producto
 

@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 import { UnitMeasureService } from './unit-measure.service';
 import { UnitMeasureController } from './unit-measure.controller';
-import { UnitMeasure, UnitMeasureSchema } from './entities/unit-measure.entity';
 import { HttpModule } from '@nestjs/axios';
+import { FactusModule } from 'src/factus/factus.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: UnitMeasure.name, schema: UnitMeasureSchema }]),HttpModule
+   HttpModule,
+   FactusModule
   ],
   controllers: [UnitMeasureController],
   providers: [UnitMeasureService],

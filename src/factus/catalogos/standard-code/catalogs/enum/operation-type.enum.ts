@@ -1,0 +1,4 @@
+export enum OperationType {
+    NOTA_CREDITO_REFERENCIA_FACTURA = 20,
+    NOTA_CREDITO_SIN_REFERENCIA = 22,
+  }

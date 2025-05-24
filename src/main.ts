@@ -16,6 +16,7 @@ async function bootstrap() {
     ?.split(',')
     .map((origin) => origin.trim());
 
+
   app.enableCors({
     origin: (
       origin: string | undefined,
@@ -35,6 +36,7 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
   app.useGlobalFilters(new AllExceptionsFilter());
+
 
   await app.listen(process.env.PORT || 3000);
 }

@@ -35,19 +35,29 @@ export class AuthController {
     // Inicia la redirección a Google
   }
 
-  @Get('google/redirect')
+  @Get('callback/google') // <-- Cambia 'google/redirect' a 'callback/google'
   @UseGuards(AuthGuard('google'))
   googleAuthRedirect(
     @Req() req: { user?: { jwt?: string; jwtToken?: string; user?: any } },
     @Res() res: Response,
   ) {
-    if (!req.user || !req.user.jwt) {
-      return res.status(401).json({ message: 'Autenticación fallida' });
+    if (!req.user || !req.user.jwt) { // Asegúrate que 'jwt' es lo que realmente viene de GoogleStrategy
+       // Considera cambiar req.user.jwt a req.user.jwtToken si eso es lo que devuelve tu strategy
+       console.error('Fallo en callback de Google: No se encontró req.user.jwt o req.user', req.user);
+       return res.status(401).json({ message: 'Autenticación fallida - Faltan datos del usuario' });
     }
 
-    const { jwtToken } = req.user;
+    // Asegúrate que la propiedad correcta (jwt o jwtToken) se usa aquí
+    const token = req.user.jwt || req.user.jwtToken;
+    if (!token) {
+       console.error('Fallo en callback de Google: No se encontró token en req.user', req.user);
+       return res.status(401).json({ message: 'Autenticación fallida - Token no generado' });
+    }
+
+    // Usa la variable FRONTEND_URL del .env para la redirección
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4000'; // Usa 4000 como fallback si no está en .env
     return res.redirect(
-      `http://localhost:4200/auth/callback?token=${jwtToken}`,
+      `${frontendUrl}/auth/callback?token=${token}`, // Redirige al frontend
     );
   }
 

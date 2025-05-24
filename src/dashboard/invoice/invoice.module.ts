@@ -9,11 +9,9 @@ import { UsersModule } from 'src/users/users.module';
 import { JwtConfigModule } from 'src/jwt/jwt.module';
 import { FactusModule } from 'src/factus/factus.module';
 import { UnitMeasureModule } from 'src/factus/catalogos/unit-measure/unit-measure.module';
-import { TributeModule } from 'src/factus/catalogos/tribute/tribute.module';
-import { StandardCodeModule } from 'src/factus/catalogos/standard-code/standard-code.module';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Invoice.name, schema: InvoiceSchema }]), InvoicePartiesModule, ProductsModule, UsersModule, JwtConfigModule, FactusModule, UnitMeasureModule, TributeModule, StandardCodeModule], // Asegúrate de importar el módulo de InvoiceParties aquí
+  imports: [MongooseModule.forFeature([{ name: Invoice.name, schema: InvoiceSchema }]), InvoicePartiesModule, ProductsModule, UsersModule, JwtConfigModule, FactusModule, UnitMeasureModule, ], // Asegúrate de importar el módulo de InvoiceParties aquí
   controllers: [InvoiceController],
   providers: [InvoiceService],
   exports: [InvoiceService], // Exporta el servicio si lo necesitas en otros módulos

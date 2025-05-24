@@ -39,8 +39,9 @@ export class Invoice {
 
   @Prop()
   numbering_range_id?: number; // ID del rango de numeración
+  
   @Prop()
-  payment_method_code?: number; // Método de pago de la factura
+  payment_method_code: number; // Método de pago de la factura
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   issuerId: Types.ObjectId;

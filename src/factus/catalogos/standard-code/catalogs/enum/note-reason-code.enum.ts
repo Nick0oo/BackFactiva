@@ -1,0 +1,7 @@
+export enum NoteReasonCode {
+    DEVOLUCION_O_NO_ACEPTACION = 1,
+    ANULACION_DOCUMENTO_SOPORTE = 2,
+    REBAJA_DESCUENTO = 3,
+    AJUSTE_PRECIO = 4,
+    OTROS = 5,
+  }

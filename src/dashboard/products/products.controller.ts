@@ -36,7 +36,7 @@ export class ProductsController {
     return await this.productsService.findAll();
   }
 
-  @Get('user/:userId') // Ruta para obtener facturas por userId
+  @Get('user/:userId') // Ruta para obtener products por userId
   @UseGuards(JwtAuthGuard) // Protegido por JWT
   async findAllByUserId(@Param('userId') userId: string): Promise<Product[]> { // Especifica el tipo de retorno
     return this.productsService.findAllByUser(userId); // Llama al método del servicio existente
@@ -45,7 +45,7 @@ export class ProductsController {
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
-  async findOne(@Param('_id') _id: string) {
+  async findOne(@Param('id') _id: string) {
     return await this.productsService.findOne(_id);
   }
 

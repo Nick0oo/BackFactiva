@@ -30,7 +30,7 @@ export class InvoicePartiesController {
     return this.invoicePartiesService.create(createInvoicePartyDto, issuerId); // 2. Pasa el ID al servicio
   }
 
-  @Get('user/:userId') // Ruta para obtener facturas por userId
+  @Get('user/:userId') // Ruta para obtener customers por userId
   @UseGuards(JwtAuthGuard) // Protegido por JWT
   async findAllByUserId(@Param('userId') userId: string): Promise<InvoiceParty[]> { // Especifica el tipo de retorno
     return this.invoicePartiesService.findAllByUser(userId); // Llama al método del servicio existente
