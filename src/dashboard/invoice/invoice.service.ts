@@ -183,9 +183,13 @@ const { payment_method_code, ...restOfDto } = createInvoiceDto;
   async findAllByUser(id: string, skip: number = 0, limit: number = 10): Promise<InvoiceDocument[]> {
     return this.invoiceModel
       .find({ issuerId: id })
-      .populate('receiverId', 'name email identification company trade_name address phone')
-      .sort({ issueDate: -1 }) // Ordenar por fecha de emisión, más reciente primero
-      .select('reference_code totalAmount status issueDate factusInvoiceNumber receiverId') // Seleccionar solo los campos necesarios
+      .populate('receiverId', 'names email identification company trade_name address phone')
+      .populate({
+        path: 'items.productId',
+        select: 'name code_reference price unit_measure standard_code_id tribute_id'
+      })
+      .sort({ issueDate: -1 })
+      .select('reference_code totalAmount status issueDate factusInvoiceNumber receiverId items')
       .skip(skip)
       .limit(limit)
       .lean()
