@@ -180,10 +180,14 @@ const { payment_method_code, ...restOfDto } = createInvoiceDto;
     }
   }
 
-  async findAllByUser(id: string): Promise<InvoiceDocument[]> {
+  async findAllByUser(id: string, skip: number = 0, limit: number = 10): Promise<InvoiceDocument[]> {
     return this.invoiceModel
       .find({ issuerId: id })
-      .populate('receiverId', 'name')    // <— agrega esto
+      .populate('receiverId', 'name email identification company trade_name address phone')
+      .sort({ issueDate: -1 }) // Ordenar por fecha de emisión, más reciente primero
+      .select('reference_code totalAmount status issueDate factusInvoiceNumber receiverId') // Seleccionar solo los campos necesarios
+      .skip(skip)
+      .limit(limit)
       .lean()
       .exec();
   }

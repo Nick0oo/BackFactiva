@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Query, NotFoundException } from '@nestjs/common';
 import { MunicipalityService } from './municipality.service';
 import { Municipality } from './dto/municipality.dto';
 
@@ -11,8 +11,12 @@ export class MunicipalityController {
         return this.municipalityService.findAll();
     }
 
-    @Get('department/:departmentName')
-    findByDepartment(@Param('departmentName') departmentName: string): Promise<Municipality[]> {
-        return this.municipalityService.findByDepartment(departmentName);
+    @Get('department/:department')
+    async findByDepartment(@Query('department') department: string): Promise<Municipality[]> {
+        const municipalities = await this.municipalityService.findByDepartment(department);
+        if (!municipalities || municipalities.length === 0) {
+            throw new NotFoundException(`No se encontraron municipios para el departamento ${department}`);
+        }
+        return municipalities;
     }
 }

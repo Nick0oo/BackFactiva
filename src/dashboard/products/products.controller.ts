@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Query } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -38,8 +38,23 @@ export class ProductsController {
 
   @Get('user/:userId') // Ruta para obtener products por userId
   @UseGuards(JwtAuthGuard) // Protegido por JWT
-  async findAllByUserId(@Param('userId') userId: string): Promise<Product[]> { // Especifica el tipo de retorno
-    return this.productsService.findAllByUser(userId); // Llama al método del servicio existente
+  async findAllByUserId(
+    @Param('userId') userId: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10
+  ): Promise<{ products: Product[]; total: number; page: number; totalPages: number }> {
+    const skip = (page - 1) * limit;
+    const [products, total] = await Promise.all([
+      this.productsService.findAllByUser(userId, skip, limit),
+      this.productsService.countByUser(userId)
+    ]);
+    
+    return {
+      products,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    };
   }
 
 

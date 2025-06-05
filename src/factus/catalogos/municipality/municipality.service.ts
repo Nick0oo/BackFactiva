@@ -164,22 +164,32 @@ export class MunicipalityService implements OnModuleInit {
     async findByDepartment(departmentName: string): Promise<Municipality[]> {
         try {
             if (!Array.isArray(this.municipalities)) {
-                console.warn('Municipalities is not an array');
+                console.warn('⚠️ municipalities no es un array:', typeof this.municipalities);
                 return [];
             }
 
             const normalizedDeptName = String(departmentName).trim().toUpperCase();
-
-            const municipalities = this.municipalities.filter(m => {
-                if (!m || typeof m !== 'object' || !m.department) return false;
-                const deptName = String(m.department).trim().toUpperCase();
-                return deptName === normalizedDeptName;
+            console.log(`Buscando municipios para departamento: "${normalizedDeptName}"`);
+            
+            const municipalities = this.municipalities.filter(municipality => {
+                if (!municipality || typeof municipality !== 'object') return false;
+                
+                const deptName = String(municipality.department).trim().toUpperCase();
+                const match = deptName === normalizedDeptName;
+                if (match) console.log('✅ Encontrado municipio:', municipality.name);
+                
+                return match;
             });
 
-            console.log(`✅ Encontrados ${municipalities.length} municipios en departamento "${departmentName}"`);
+            if (municipalities.length > 0) {
+                console.log(`✅ Se encontraron ${municipalities.length} municipios para el departamento "${departmentName}"`);
+            } else {
+                console.log(`⚠️ No se encontraron municipios para el departamento "${departmentName}"`);
+            }
+            
             return municipalities;
         } catch (error) {
-            console.error('Error buscando municipios por departamento:', error.message);
+            console.error('Error al buscar municipios por departamento:', error);
             return [];
         }
     }

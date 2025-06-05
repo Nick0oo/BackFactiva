@@ -22,14 +22,7 @@ export class ProductsService {
   private async validateUnitMeasure(unitMeasureCode: string | number): Promise<UnitMeasure> {
     try {
       const unitMeasureCodeStr = unitMeasureCode.toString();
-      
-      // Primero intentamos buscar por código
-      let unitMeasure = await this.unitMeasureService.findByCode(unitMeasureCodeStr);
-      
-      // Si no se encuentra por código, intentamos buscar por ID
-      if (!unitMeasure) {
-        unitMeasure = await this.unitMeasureService.findById(unitMeasureCodeStr);
-      }
+      const unitMeasure = await this.unitMeasureService.findByCode(unitMeasureCodeStr);
       
       if (!unitMeasure) {
         throw new NotFoundException(`Unidad de medida con código/ID ${unitMeasureCodeStr} no encontrada`);
@@ -46,14 +39,7 @@ export class ProductsService {
   private async validateTribute(tributeId: string | number): Promise<Tribute> {
     try {
       const tributeIdStr = tributeId.toString();
-      
-      // Primero intentamos buscar por código
-      let tribute = await this.tributeService.findByCode(tributeIdStr);
-      
-      // Si no se encuentra por código, intentamos buscar por ID
-      if (!tribute) {
-        tribute = await this.tributeService.findById(tributeIdStr);
-      }
+      const tribute = await this.tributeService.findByCode(tributeIdStr);
       
       if (!tribute) {
         throw new NotFoundException(`Tributo con código/ID ${tributeIdStr} no encontrado`);
@@ -65,6 +51,33 @@ export class ProductsService {
       }
       throw new InternalServerErrorException('Error al validar el tributo');
     }
+  }
+
+  private async enrichProductData(product: ProductDocument) {
+    // Obtener datos de la unidad de medida
+    const unitMeasure = await this.unitMeasureService.findByCode(product.unit_measure.toString());
+    
+    // Obtener datos del tributo
+    const tribute = await this.tributeService.findByCode(product.tribute_id.toString());
+
+    // Obtener el nombre del código estándar
+    const standardCodeName = ProductIdentification[product.standard_code_id] || product.standard_code_id;
+
+    return {
+      ...product.toObject(),
+      unit_measure: {
+        id: product.unit_measure,
+        name: unitMeasure?.nombre || 'No encontrado'
+      },
+      tribute_id: {
+        id: product.tribute_id,
+        name: tribute?.nombre || 'No encontrado'
+      },
+      standard_code_id: {
+        id: product.standard_code_id,
+        name: standardCodeName
+      }
+    };
   }
 
   async create(createProductDto: CreateProductDto, issuerId): Promise<ProductDocument> {
@@ -88,55 +101,64 @@ export class ProductsService {
     };
 
     const createdProduct = new this.productModel(productData);
-    return await createdProduct.save();
+    const savedProduct = await createdProduct.save();
+    return this.enrichProductData(savedProduct);
   }
 
-  async findAll(): Promise<ProductDocument[]> {
-    return await this.productModel.find().exec();
+  async findAll(): Promise<any[]> {
+    const products = await this.productModel.find().exec();
+    return Promise.all(products.map(product => this.enrichProductData(product)));
   }
 
-  async findAllByUser(userId: string): Promise<ProductDocument[]> {
-    return this.productModel.find({ issuerId: userId }).exec();
+  async findAllByUser(userId: string, skip: number = 0, limit: number = 10): Promise<any[]> {
+    const products = await this.productModel
+      .find({ issuerId: userId })
+      .sort({ createdAt: -1 }) // Ordenar por fecha de creación, más reciente primero
+      .skip(skip)
+      .limit(limit)
+      .exec();
+    
+    return Promise.all(products.map(product => this.enrichProductData(product)));
   }
 
-  async findOne(id: string): Promise<ProductDocument> {
+  async countByUser(userId: string): Promise<number> {
+    return this.productModel.countDocuments({ issuerId: userId }).exec();
+  }
+
+  async findOne(id: string): Promise<any> {
     const product = await this.productModel.findById(id).exec();
     if (!product) {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
-    return product;
+    return this.enrichProductData(product);
   }
 
-  async update(id: string, updateProductDto: UpdateProductDto): Promise<ProductDocument> {
+  async update(id: string, updateProductDto: UpdateProductDto): Promise<any> {
     const updateData = { ...updateProductDto };
-
-    // Manejar el código de identificación estándar
-    if (updateData.standard_code_id) {
-      updateData.standard_code_id = ProductIdentification[updateData.standard_code_id] as any;
-    }
 
     // Si se está actualizando la unidad de medida
     if (updateProductDto.unit_measure) {
       const unitMeasure = await this.validateUnitMeasure(String(updateProductDto.unit_measure));
+      updateData.unit_measure = unitMeasure.id || unitMeasure.code;
+    }
 
-      // Obtener el ID de la unidad de medida
-      const unitMeasureId = unitMeasure.id || unitMeasure.code;
-
-      // Actualizar con el ID en vez del código
-      updateData.unit_measure = unitMeasureId;
+    // Si se está actualizando el tributo
+    if (updateProductDto.tribute_id) {
+      const tribute = await this.validateTribute(updateProductDto.tribute_id);
+      updateData.tribute_id = tribute.id || tribute.code;
     }
 
     const updatedProduct = await this.productModel.findByIdAndUpdate(
       id,
       updateData,
-      { new: true },
+      { new: true }
     ).exec();
 
     if (!updatedProduct) {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
 
-    return updatedProduct;
+    return this.enrichProductData(updatedProduct);
   }
 
   async remove(id: string): Promise<void> {

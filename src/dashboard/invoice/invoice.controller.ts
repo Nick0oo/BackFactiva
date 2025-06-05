@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Inject, UseGuards, Req, BadRequestException } from '@nestjs/common'; // Añade BadRequestException
+import { Controller, Get, Post, Body, Patch, Param, Delete, Inject, UseGuards, Req, BadRequestException, Query } from '@nestjs/common'; // Añade BadRequestException y Query
 import { InvoiceService } from './invoice.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
@@ -66,8 +66,23 @@ export class InvoiceController {
 
   @Get('user/:userId') // Ruta para obtener facturas por userId
   @UseGuards(JwtAuthGuard) // Protegido por JWT
-  async findAllByUserId(@Param('userId') userId: string): Promise<Invoice[]> { // Especifica el tipo de retorno
-    return this.invoiceService.findAllByUser(userId); // Llama al método del servicio existente
+  async findAllByUserId(
+    @Param('userId') userId: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10
+  ): Promise<{ invoices: Invoice[]; total: number; page: number; totalPages: number }> {
+    const skip = (page - 1) * limit;
+    const [invoices, total] = await Promise.all([
+      this.invoiceService.findAllByUser(userId, skip, limit),
+      this.invoiceService.countByUser(userId)
+    ]);
+    
+    return {
+      invoices,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    };
   }
 
   // 1) total de facturas de un usuario
