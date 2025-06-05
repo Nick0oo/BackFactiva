@@ -14,14 +14,14 @@ export class Product {
   @Prop({ required: true })
   price: number; // Precio del producto
 
-  @Prop({ required: true })
-  unit_measure: number; // Unidad de medida (ej. "kg", "unidad", etc.)
+  @Prop({ required: true, type: 'Mixed' })
+  unit_measure: string | number; // Unidad de medida (ej. "kg", "unidad", etc.)
 
-  @Prop({ required: true })
-  standard_code_id: number; // Código estándar del producto, por ejemplo, un código del producto o servicio
+  @Prop({ required: true, type: 'Mixed' })
+  standard_code_id: string | number; // Código estándar del producto
 
-  @Prop({ required: true })
-  tribute_id: number; // ID del tributo asociado al producto
+  @Prop({ required: true, type: 'Mixed' })
+  tribute_id: string | number; // ID del tributo asociado al producto
 
   @Prop()
   description?: string; // Descripción opcional del producto
@@ -29,8 +29,7 @@ export class Product {
   @Prop({ default: true })
   is_active: boolean; // Indica si el producto está activo o no
 
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true }) // Añade esta línea
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   issuerId: Types.ObjectId; // ID del usuario que creó el producto
-
 }
 export const ProductSchema = SchemaFactory.createForClass(Product);

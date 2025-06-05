@@ -56,28 +56,61 @@ export class TributeService implements OnModuleInit {
   }
 
   async findByCode(code: string): Promise<Tribute | undefined> {
-   try {
+    try {
+      // Verificación adicional para evitar errores
       if (!Array.isArray(this.tributes)) {
-        throw new Error('La lista de tributos no está disponible.');
+        console.warn('⚠️ tributes no es un array:', typeof this.tributes);
+        return undefined;
       }
 
-      const foundTribute = this.tributes.find(tribute => {if (!tribute || typeof tribute !== 'object') return false;
-
-      const tributeCode = tribute.code || tribute.id;
-      const stringCode = String(tributeCode).trim().toUpperCase();
-      const SearchCode = String(code).trim().toUpperCase();
-
-      const isMatch = stringCode === SearchCode;
-      if (isMatch) {
-        console.log(`✔️ Código encontrado: ${stringCode}`);
-      } 
-      return isMatch;
-   });
-    return foundTribute;
-   } catch (error) {
-      console.error('❌ Error al buscar el código:', error.message);
+      // Depuración para buscar el código
+      console.log(`Buscando tributo con código: "${code}"`);
+      
+      const found = this.tributes.find(tribute => {
+        if (!tribute || typeof tribute !== 'object') return false;
+        
+        // Buscar en diferentes propiedades posibles según los logs
+        const tributeCode = tribute.code || tribute.id;
+        const stringCode = String(tributeCode).trim().toUpperCase();
+        const searchCode = String(code).trim().toUpperCase();
+        
+        const match = stringCode === searchCode;
+        if (match) console.log('✅ Encontrado:', tribute);
+        
+        return match;
+      });
+      
+      return found;
+    } catch (error) {
+      console.error('Error al buscar tributo:', error);
       return undefined;
     }
+  }
 
-   }
+  async findById(id: string | number): Promise<Tribute | undefined> {
+    try {
+      if (!Array.isArray(this.tributes)) {
+        console.warn('⚠️ tributes no es un array:', typeof this.tributes);
+        return undefined;
+      }
+
+      const idStr = String(id).trim();
+      console.log(`Buscando tributo con ID: "${idStr}"`);
+      
+      const found = this.tributes.find(tribute => {
+        if (!tribute || typeof tribute !== 'object') return false;
+        
+        const tributeId = String(tribute.id).trim();
+        const match = tributeId === idStr;
+        if (match) console.log('✅ Encontrado por ID:', tribute);
+        
+        return match;
+      });
+      
+      return found;
+    } catch (error) {
+      console.error('Error al buscar tributo por ID:', error);
+      return undefined;
+    }
+  }
 }

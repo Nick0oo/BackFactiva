@@ -91,5 +91,32 @@ export class UnitMeasureService implements OnModuleInit {
       return undefined;
     }
   }
+
+  async findById(id: string | number): Promise<UnitMeasure | undefined> {
+    try {
+      if (!Array.isArray(this.unitMeasures)) {
+        console.warn('⚠️ unitMeasures no es un array:', typeof this.unitMeasures);
+        return undefined;
+      }
+
+      const idStr = String(id).trim();
+      console.log(`Buscando unidad con ID: "${idStr}"`);
+      
+      const found = this.unitMeasures.find(unit => {
+        if (!unit || typeof unit !== 'object') return false;
+        
+        const unitId = String(unit.id).trim();
+        const match = unitId === idStr;
+        if (match) console.log('✅ Encontrado por ID:', unit);
+        
+        return match;
+      });
+      
+      return found;
+    } catch (error) {
+      console.error('Error al buscar unidad de medida por ID:', error);
+      return undefined;
+    }
+  }
 }
 

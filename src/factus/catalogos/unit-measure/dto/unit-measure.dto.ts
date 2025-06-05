@@ -1,7 +1,6 @@
-
 export interface UnitMeasure {
   id: number;
-  code: number;
+  code: string | number;
   nombre: string;
   descripcion: string;
 }

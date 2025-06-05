@@ -26,11 +26,12 @@ export class CreateInvoicePartyDto {
   @Matches(/^3[0-9]{9}$/, {
     message: 'El teléfono debe tener 10 dígitos y comenzar con 3',
   }) phone: string;
-  @IsNotEmpty() @IsEnum(OrganizationType) legal_organization_id: keyof typeof OrganizationType;
-  @IsNotEmpty() @IsEnum(CustomerTributeId) tribute_id: keyof typeof CustomerTributeId;
-  @IsNotEmpty() @IsEnum(IdentityDocumentType) identification_document_id: keyof typeof IdentityDocumentType;
+  
+  @IsNotEmpty() @IsEnum(OrganizationType) legal_organization_id: OrganizationType;
+  @IsNotEmpty() @IsEnum(CustomerTributeId) tribute_id:  CustomerTributeId;
+  @IsNotEmpty() @IsEnum(IdentityDocumentType) identification_document_id:  IdentityDocumentType;
 
   @IsNotEmpty() @IsString() department: string;
   @IsNotEmpty() @IsString() municipality_name: string;
-  @IsNumber() @IsOptional() municipality_id: number;
+  @IsOptional() municipality_id: string | number;
 }

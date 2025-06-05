@@ -6,8 +6,8 @@ export type InvoicePartyDocument = InvoiceParty & Document;
 @Schema()
 export class InvoiceParty {
   
-  @Prop({ required: true })
-  identification_document_id: number;
+  @Prop({ required: true, type: 'Mixed' })
+  identification_document_id: string | number;
   
   @Prop({ required: true })
   identification: string;
@@ -33,19 +33,19 @@ export class InvoiceParty {
   @Prop({ required: true })
   phone: string;
 
-  @Prop({ required: true })
-  legal_organization_id: number;
+  @Prop({ required: true, type: 'Mixed' })
+  legal_organization_id: string | number;
 
-  @Prop({ required: true })
-  tribute_id: number;
+  @Prop({ required: true, type: 'Mixed' })
+  tribute_id: string | number;
 
   @Prop({ required: true })
   department: string;
 
-  @Prop({ required: true })
-  municipality_id: number;
+  @Prop({ required: true, type: 'Mixed' })
+  municipality_id: string | number;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true }) // Añade esta línea
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   issuerId: Types.ObjectId;
 }
 

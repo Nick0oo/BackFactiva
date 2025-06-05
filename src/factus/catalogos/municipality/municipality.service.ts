@@ -142,10 +142,10 @@ export class MunicipalityService implements OnModuleInit {
             const normalizedDeptName = String(departmentName).trim().toUpperCase();
 
             const municipality = this.municipalities.find(m => {
-                if (!m || typeof m !== 'object' || !m.name || !m.department) return false; // CAMBIAR
+                if (!m || typeof m !== 'object' || !m.name || !m.department) return false;
                 
                 const munName = String(m.name).trim().toUpperCase();
-                const deptName = String(m.department).trim().toUpperCase(); // CAMBIAR
+                const deptName = String(m.department).trim().toUpperCase();
                 
                 return munName === normalizedMunName && deptName === normalizedDeptName;
             });
@@ -158,6 +158,29 @@ export class MunicipalityService implements OnModuleInit {
         } catch (error) {
             console.error('Error buscando municipio en departamento:', error.message);
             return undefined;
+        }
+    }
+
+    async findByDepartment(departmentName: string): Promise<Municipality[]> {
+        try {
+            if (!Array.isArray(this.municipalities)) {
+                console.warn('Municipalities is not an array');
+                return [];
+            }
+
+            const normalizedDeptName = String(departmentName).trim().toUpperCase();
+
+            const municipalities = this.municipalities.filter(m => {
+                if (!m || typeof m !== 'object' || !m.department) return false;
+                const deptName = String(m.department).trim().toUpperCase();
+                return deptName === normalizedDeptName;
+            });
+
+            console.log(`✅ Encontrados ${municipalities.length} municipios en departamento "${departmentName}"`);
+            return municipalities;
+        } catch (error) {
+            console.error('Error buscando municipios por departamento:', error.message);
+            return [];
         }
     }
 

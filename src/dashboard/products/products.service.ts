@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -19,20 +19,52 @@ export class ProductsService {
     private readonly tributeService: TributeService,
   ) { }
 
-  async validateUnitMeasure(unitMeasureCode: string): Promise<UnitMeasure> {
-    const unitMeasure = await this.unitMeasureService.findByCode(unitMeasureCode);
-    if (!unitMeasure) {
-      throw new NotFoundException(`Unit measure with code ${unitMeasureCode} not found`);
+  private async validateUnitMeasure(unitMeasureCode: string | number): Promise<UnitMeasure> {
+    try {
+      const unitMeasureCodeStr = unitMeasureCode.toString();
+      
+      // Primero intentamos buscar por código
+      let unitMeasure = await this.unitMeasureService.findByCode(unitMeasureCodeStr);
+      
+      // Si no se encuentra por código, intentamos buscar por ID
+      if (!unitMeasure) {
+        unitMeasure = await this.unitMeasureService.findById(unitMeasureCodeStr);
+      }
+      
+      if (!unitMeasure) {
+        throw new NotFoundException(`Unidad de medida con código/ID ${unitMeasureCodeStr} no encontrada`);
+      }
+      return unitMeasure;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error al validar la unidad de medida');
     }
-    return unitMeasure;
   }
 
-  async validateTribute(tributeId: string): Promise<Tribute> {
-    const tribute = await this.tributeService.findByCode(tributeId);
-    if (!tribute) {
-      throw new NotFoundException(`Tribute with ID ${tributeId} not found`);
+  private async validateTribute(tributeId: string | number): Promise<Tribute> {
+    try {
+      const tributeIdStr = tributeId.toString();
+      
+      // Primero intentamos buscar por código
+      let tribute = await this.tributeService.findByCode(tributeIdStr);
+      
+      // Si no se encuentra por código, intentamos buscar por ID
+      if (!tribute) {
+        tribute = await this.tributeService.findById(tributeIdStr);
+      }
+      
+      if (!tribute) {
+        throw new NotFoundException(`Tributo con código/ID ${tributeIdStr} no encontrado`);
+      }
+      return tribute;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error al validar el tributo');
     }
-    return tribute;
   }
 
   async create(createProductDto: CreateProductDto, issuerId): Promise<ProductDocument> {
@@ -46,15 +78,10 @@ export class ProductsService {
     const tribute = await this.validateTribute(createProductDto.tribute_id);
 
     const tributeId = tribute.id || tribute.code;
-    // Convertir código estándar si existe
-    const standardCodeId = createProductDto.standard_code_id
-      ? ProductIdentification[createProductDto.standard_code_id]
-      : undefined;
 
     // Preparar datos del producto con el ID de la unidad de medida
     const productData = {
       ...createProductDto,
-      standard_code_id: standardCodeId,
       unit_measure: unitMeasureId, // Guardar el ID en lugar del código
       tribute_id: tributeId, // Guardar el ID del tributo
       issuerId

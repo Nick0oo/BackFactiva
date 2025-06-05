@@ -15,12 +15,26 @@ import { FactusService } from './factus/factus.service';
 import { FactusModule } from './factus/factus.module';
 import { HttpModule } from '@nestjs/axios';
 
+/**
+ * Main application module.
+ * This module is responsible for:
+ * - Loading configuration
+ * - Connecting to the database
+ * - Importing and exporting modules
+ * - Defining controllers and providers
+ */
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
-      load: [config.appConfig, config.databaseConfig, config.jwtConfig, config.mailConfig, config.googleConfig],
+      load: [
+        config.appConfig,
+        config.databaseConfig,
+        config.jwtConfig,
+        config.mailConfig,
+        config.googleConfig,
+      ],
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
@@ -37,7 +51,7 @@ import { HttpModule } from '@nestjs/axios';
     MfaModule,
     RolesModule,
     FactusModule,
-    HttpModule
+    HttpModule,
   ],
   controllers: [AppController],
   providers: [AppService, FactusService],
