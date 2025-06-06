@@ -88,7 +88,6 @@ export class UsersService {
 
   async findById(id: string): Promise<UserDocument> {
     const user = await this.userModel.findById(id).exec();
-    console.log('User found:', id);
     if (!user) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
@@ -146,7 +145,6 @@ export class UsersService {
       }
       user.password = newHashedPassword; // Asigna el nuevo hash
       await user.save(); // ¡Guarda el cambio!
-      console.log(`Contraseña actualizada para usuario: ${userId}`);
       return user;
     } catch (error) {
       console.error(`Error al actualizar contraseña para ${userId}:`, error);

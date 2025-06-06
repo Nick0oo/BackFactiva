@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -20,8 +20,12 @@ export class ProductsService {
   ) { }
 
   private async validateUnitMeasure(unitMeasureCode: string | number): Promise<UnitMeasure> {
+    if (!unitMeasureCode) {
+      throw new BadRequestException('El código de unidad de medida es requerido');
+    }
+
     try {
-      const unitMeasureCodeStr = unitMeasureCode.toString();
+      const unitMeasureCodeStr = String(unitMeasureCode);
       const unitMeasure = await this.unitMeasureService.findByCode(unitMeasureCodeStr);
       
       if (!unitMeasure) {
@@ -29,7 +33,7 @@ export class ProductsService {
       }
       return unitMeasure;
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
       throw new InternalServerErrorException('Error al validar la unidad de medida');
@@ -37,8 +41,12 @@ export class ProductsService {
   }
 
   private async validateTribute(tributeId: string | number): Promise<Tribute> {
+    if (!tributeId) {
+      throw new BadRequestException('El ID del tributo es requerido');
+    }
+
     try {
-      const tributeIdStr = tributeId.toString();
+      const tributeIdStr = String(tributeId);
       const tribute = await this.tributeService.findByCode(tributeIdStr);
       
       if (!tribute) {
@@ -46,7 +54,7 @@ export class ProductsService {
       }
       return tribute;
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
       throw new InternalServerErrorException('Error al validar el tributo');
@@ -54,128 +62,213 @@ export class ProductsService {
   }
 
   private async enrichProductData(product: ProductDocument) {
-    // Obtener datos de la unidad de medida
-    const unitMeasure = await this.unitMeasureService.findByCode(product.unit_measure.toString());
-    
-    // Obtener datos del tributo
-    const tribute = await this.tributeService.findByCode(product.tribute_id.toString());
-
-    // Obtener el nombre del código estándar
-    const standardCodeName = ProductIdentification[product.standard_code_id] || product.standard_code_id;
-
-    return {
-      ...product.toObject(),
-      unit_measure: {
-        id: product.unit_measure,
-        name: unitMeasure?.nombre || 'No encontrado'
-      },
-      tribute_id: {
-        id: product.tribute_id,
-        name: tribute?.nombre || 'No encontrado'
-      },
-      standard_code_id: {
-        id: product.standard_code_id,
-        name: standardCodeName
-      }
-    };
+    try {
+      // Buscar unidad de medida en el catálogo sincronizado (por id o code)
+      const unitMeasures = this.unitMeasureService.unitMeasures || [];
+      const unitMeasure = unitMeasures.find(
+        (u: any) => String(u.id) === String(product.unit_measure) || String(u.code).toUpperCase() === String(product.unit_measure).toUpperCase()
+      );
+      // Buscar tributo en el catálogo sincronizado (por id o code)
+      const tributes = (this.tributeService as any).tributes || [];
+      const tribute = tributes.find(
+        (t: any) => String(t.id ?? t.code) === String(product.tribute_id)
+      );
+      // Obtener el nombre del código estándar
+      const standardCodeName = ProductIdentification[product.standard_code_id] || product.standard_code_id;
+      // Retornar un objeto PLANO, mostrar el code de unidad
+      return {
+        ...product.toObject(),
+        codeReference: product.code_reference,
+        unit_measure: {
+          id: product.unit_measure,
+          code: unitMeasure?.code || String(product.unit_measure),
+          name: (unitMeasure as any)?.name || (unitMeasure as any)?.nombre || String(product.unit_measure) || 'No encontrado'
+        },
+        tribute_id: {
+          id: product.tribute_id,
+          name: (tribute as any)?.name || (tribute as any)?.nombre || String(product.tribute_id) || 'No encontrado'
+        },
+        standard_code_id: standardCodeName,
+      };
+    } catch (error) {
+      console.error('Error al enriquecer datos del producto:', error);
+      throw new InternalServerErrorException('Error al procesar los datos del producto');
+    }
   }
 
-  async create(createProductDto: CreateProductDto, issuerId): Promise<ProductDocument> {
-    // Buscar la unidad de medida por código
-    const unitMeasure = await this.validateUnitMeasure(String(createProductDto.unit_measure));
+  async create(createProductDto: CreateProductDto, issuerId: string): Promise<ProductDocument> {
+    try {
+      if (!issuerId) {
+        throw new BadRequestException('El ID del emisor es requerido');
+      }
 
-    // Obtener el ID de la unidad de medida (pueden llamarse diferente según la API)
-    const unitMeasureId = unitMeasure.id || unitMeasure.code;
+      // Buscar la unidad de medida por código
+      const unitMeasure = await this.validateUnitMeasure(createProductDto.unit_measure);
 
-    // Validar el tributo
-    const tribute = await this.validateTribute(createProductDto.tribute_id);
+      // Obtener el ID de la unidad de medida
+      const unitMeasureId = unitMeasure.id || unitMeasure.code;
 
-    const tributeId = tribute.id || tribute.code;
+      // Validar el tributo
+      const tribute = await this.validateTribute(createProductDto.tribute_id);
+      const tributeId = tribute.id || tribute.code;
 
-    // Preparar datos del producto con el ID de la unidad de medida
-    const productData = {
-      ...createProductDto,
-      unit_measure: unitMeasureId, // Guardar el ID en lugar del código
-      tribute_id: tributeId, // Guardar el ID del tributo
-      issuerId
-    };
+      // Preparar datos del producto
+      const productData = {
+        ...createProductDto,
+        unit_measure: unitMeasureId,
+        tribute_id: tributeId,
+        issuerId
+      };
 
-    const createdProduct = new this.productModel(productData);
-    const savedProduct = await createdProduct.save();
-    return this.enrichProductData(savedProduct);
+      const createdProduct = new this.productModel(productData);
+      const savedProduct = await createdProduct.save();
+      return this.enrichProductData(savedProduct);
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error al crear el producto');
+    }
   }
 
   async findAll(): Promise<any[]> {
-    const products = await this.productModel.find().exec();
-    return Promise.all(products.map(product => this.enrichProductData(product)));
+    try {
+      const products = await this.productModel.find().select('code_reference name price unit_measure standard_code_id tribute_id description is_active issuerId createdAt').exec();
+      return Promise.all(products.map(product => this.enrichProductData(product)));
+    } catch (error) {
+      throw new InternalServerErrorException('Error al obtener los productos');
+    }
   }
 
   async findAllByUser(userId: string, skip: number = 0, limit: number = 10): Promise<any[]> {
-    const products = await this.productModel
-      .find({ issuerId: userId })
-      .sort({ createdAt: -1 }) // Ordenar por fecha de creación, más reciente primero
-      .skip(skip)
-      .limit(limit)
-      .exec();
-    
-    return Promise.all(products.map(product => this.enrichProductData(product)));
+    try {
+      if (!userId) {
+        throw new BadRequestException('El ID del usuario es requerido');
+      }
+
+      const products = await this.productModel
+        .find({ issuerId: userId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .select('code_reference name price unit_measure standard_code_id tribute_id description is_active issuerId createdAt')
+        .exec();
+      
+      return Promise.all(products.map(product => this.enrichProductData(product)));
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error al obtener los productos del usuario');
+    }
   }
 
   async countByUser(userId: string): Promise<number> {
-    return this.productModel.countDocuments({ issuerId: userId }).exec();
+    try {
+      if (!userId) {
+        throw new BadRequestException('El ID del usuario es requerido');
+      }
+      return this.productModel.countDocuments({ issuerId: userId }).exec();
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error al contar los productos del usuario');
+    }
   }
 
   async findOne(id: string): Promise<any> {
-    const product = await this.productModel.findById(id).exec();
-    if (!product) {
-      throw new NotFoundException(`Product with ID ${id} not found`);
+    try {
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException(`ID de producto inválido: ${id}`);
+      }
+
+      const product = await this.productModel.findById(id).exec();
+      if (!product) {
+        throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+      }
+      return this.enrichProductData(product);
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error al obtener el producto');
     }
-    return this.enrichProductData(product);
   }
 
   async update(id: string, updateProductDto: UpdateProductDto): Promise<any> {
-    const updateData = { ...updateProductDto };
+    try {
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException(`ID de producto inválido: ${id}`);
+      }
 
-    // Si se está actualizando la unidad de medida
-    if (updateProductDto.unit_measure) {
-      const unitMeasure = await this.validateUnitMeasure(String(updateProductDto.unit_measure));
-      updateData.unit_measure = unitMeasure.id || unitMeasure.code;
+      const updateData = { ...updateProductDto };
+
+      // Si se está actualizando la unidad de medida
+      if (updateProductDto.unit_measure) {
+        const unitMeasure = await this.validateUnitMeasure(updateProductDto.unit_measure);
+        updateData.unit_measure = unitMeasure.id || unitMeasure.code;
+      }
+
+      // Si se está actualizando el tributo
+      if (updateProductDto.tribute_id) {
+        const tribute = await this.validateTribute(updateProductDto.tribute_id);
+        updateData.tribute_id = tribute.id || tribute.code;
+      }
+
+      const updatedProduct = await this.productModel.findByIdAndUpdate(
+        id,
+        updateData,
+        { new: true }
+      ).exec();
+
+      if (!updatedProduct) {
+        throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+      }
+
+      return this.enrichProductData(updatedProduct);
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error al actualizar el producto');
     }
-
-    // Si se está actualizando el tributo
-    if (updateProductDto.tribute_id) {
-      const tribute = await this.validateTribute(updateProductDto.tribute_id);
-      updateData.tribute_id = tribute.id || tribute.code;
-    }
-
-    const updatedProduct = await this.productModel.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true }
-    ).exec();
-
-    if (!updatedProduct) {
-      throw new NotFoundException(`Product with ID ${id} not found`);
-    }
-
-    return this.enrichProductData(updatedProduct);
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.productModel.findByIdAndDelete(id).exec();
-    if (!result) {
-      throw new NotFoundException(`Product with ID ${id} not found`);
+    try {
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException(`ID de producto inválido: ${id}`);
+      }
+
+      const result = await this.productModel.findByIdAndDelete(id).exec();
+      if (!result) {
+        throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+      }
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error al eliminar el producto');
     }
   }
 
   async verifyProductExists(id: string): Promise<boolean> {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new NotFoundException(`Invalid ID format: ${id}`);
+    try {
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException(`ID de producto inválido: ${id}`);
+      }
+
+      const product = await this.productModel.findById(id).exec();
+      if (!product) {
+        throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+      }
+      return true;
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error al verificar la existencia del producto');
     }
-    const product = await this.productModel.findById(id).exec();
-    if (!product) {
-      throw new NotFoundException(`Product with ID ${id} not found`);
-    }
-    return true;
   }
 }

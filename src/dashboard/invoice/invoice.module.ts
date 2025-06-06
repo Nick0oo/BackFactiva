@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { InvoiceController } from './invoice.controller';
 import { InvoiceService } from './invoice.service';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -11,7 +11,15 @@ import { FactusModule } from 'src/factus/factus.module';
 import { UnitMeasureModule } from 'src/factus/catalogos/unit-measure/unit-measure.module';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Invoice.name, schema: InvoiceSchema }]), InvoicePartiesModule, ProductsModule, UsersModule, JwtConfigModule, FactusModule, UnitMeasureModule, ], // Asegúrate de importar el módulo de InvoiceParties aquí
+  imports: [
+    MongooseModule.forFeature([{ name: Invoice.name, schema: InvoiceSchema }]),
+    InvoicePartiesModule,
+    ProductsModule,
+    UsersModule,
+    JwtConfigModule,
+    forwardRef(() => FactusModule),
+    UnitMeasureModule
+  ],
   controllers: [InvoiceController],
   providers: [InvoiceService],
   exports: [InvoiceService], // Exporta el servicio si lo necesitas en otros módulos

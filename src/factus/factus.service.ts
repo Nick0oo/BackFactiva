@@ -82,7 +82,6 @@ export class FactusService {
       this.refreshToken = resp.data.refresh_token;
       this.tokenExpiry = Date.now() + resp.data.expires_in * 1000;
     } catch (error: any) {
-      console.error('OAuth Error payload:', error.response?.data);
       throw new Error('Error al obtener el token de acceso: ' + error.message);
     }
   }
@@ -177,7 +176,7 @@ export class FactusService {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
-    console.log(invoice.receiverId.identification);
+
     interface Invoice {
       numberingRangeId: number;
       referenceCode: string;
@@ -284,8 +283,6 @@ export class FactusService {
       }),
     };
 
-    console.log('Invoice to Validate:', JSON.stringify(invoiceData, null, 2));
-    
     const resp = await lastValueFrom(this.httpService.post(url, invoiceData, { headers }));
     return resp.data;
   }

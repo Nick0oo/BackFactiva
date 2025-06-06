@@ -41,12 +41,9 @@ export class MunicipalityService implements OnModuleInit {
                 ? municipalitiesData
                 : [];
 
-            console.log(`✔️ municipios sincronizadas desde Factus: ${this.municipalities.length}`);
             if (this.municipalities.length > 0) {
-                console.log('Ejemplo de municipio:', JSON.stringify(this.municipalities[0]).substring(0, 200));
             }
         } catch (error) {
-            console.error('❌ Error al sincronizar municipios', error.message);
             this.municipalities = []; // Inicializar como array vacío en caso de error
         }
     }
@@ -69,15 +66,11 @@ export class MunicipalityService implements OnModuleInit {
                 const searchName = String(name).trim().toUpperCase();
 
                 const isNameMatch = stringName === searchName;
-                if (isNameMatch) {
-                    console.log(`✔️ Municipio encontrado: ${stringName}`);
-                }
                 return isNameMatch;
 
             });
             return foundMunicipality;
         } catch (error) {
-            console.error('Error al buscar municipio:', error.message);
             return undefined;
         }
     }
@@ -85,20 +78,15 @@ export class MunicipalityService implements OnModuleInit {
     async departmentExists(departmentName: string): Promise<boolean> {
         try {
             if (!Array.isArray(this.municipalities)) {
-                console.warn('❌ municipalities no es un array:', typeof this.municipalities);
                 return false;
             }
             
             if (this.municipalities.length === 0) {
-                console.warn('❌ El array de municipios está vacío');
                 return false;
             }
 
             // Normalizar búsqueda (sin tildes y todo en mayúscula)
             const normalizedSearch = this.normalizeText(String(departmentName));
-            
-            console.log(`🔍 Buscando departamento "${departmentName}" (normalizado: "${normalizedSearch}")`);
-            console.log(`📊 Total municipios cargados: ${this.municipalities.length}`);
             
             // Listar algunos departamentos para verificar
             const uniqueDepartments = [...new Set(
@@ -106,7 +94,6 @@ export class MunicipalityService implements OnModuleInit {
                     .filter(m => m && m.department) // CAMBIAR: departament → department
                     .map(m => m.department)        // CAMBIAR: departament → department
             )];
-            console.log(`📋 Primeros departamentos disponibles: ${uniqueDepartments.slice(0, 5).join(', ')}...`);
             
             // Buscar con mayor flexibilidad
             const found = this.municipalities.some(m => {
@@ -117,16 +104,11 @@ export class MunicipalityService implements OnModuleInit {
                 const isPartialMatch = deptNormalized.includes(normalizedSearch) || 
                                       normalizedSearch.includes(deptNormalized);
                 
-                if (isExactMatch || isPartialMatch) {
-                    console.log(`✅ Departamento encontrado: "${m.department}" (${isExactMatch ? 'coincidencia exacta' : 'coincidencia parcial'})`);
-                    return true;
-                }
-                return false;
+                return isExactMatch || isPartialMatch;
             });
 
             return found;
         } catch (error) {
-            console.error('Error checking department:', error.message);
             return false;
         }
     }
@@ -134,7 +116,6 @@ export class MunicipalityService implements OnModuleInit {
     async findByNameAndDepartment(municipalityName: string, departmentName: string): Promise<Municipality | undefined> {
         try {
             if (!Array.isArray(this.municipalities)) {
-                console.warn('Municipalities is not an array');
                 return undefined;
             }
 
@@ -150,13 +131,8 @@ export class MunicipalityService implements OnModuleInit {
                 return munName === normalizedMunName && deptName === normalizedDeptName;
             });
 
-            if (municipality) {
-                console.log(`✅ Municipio "${municipalityName}" encontrado en departamento "${departmentName}"`);
-            }
-
             return municipality;
         } catch (error) {
-            console.error('Error buscando municipio en departamento:', error.message);
             return undefined;
         }
     }
@@ -164,32 +140,21 @@ export class MunicipalityService implements OnModuleInit {
     async findByDepartment(departmentName: string): Promise<Municipality[]> {
         try {
             if (!Array.isArray(this.municipalities)) {
-                console.warn('⚠️ municipalities no es un array:', typeof this.municipalities);
                 return [];
             }
 
             const normalizedDeptName = String(departmentName).trim().toUpperCase();
-            console.log(`Buscando municipios para departamento: "${normalizedDeptName}"`);
             
             const municipalities = this.municipalities.filter(municipality => {
                 if (!municipality || typeof municipality !== 'object') return false;
                 
                 const deptName = String(municipality.department).trim().toUpperCase();
                 const match = deptName === normalizedDeptName;
-                if (match) console.log('✅ Encontrado municipio:', municipality.name);
-                
                 return match;
             });
 
-            if (municipalities.length > 0) {
-                console.log(`✅ Se encontraron ${municipalities.length} municipios para el departamento "${departmentName}"`);
-            } else {
-                console.log(`⚠️ No se encontraron municipios para el departamento "${departmentName}"`);
-            }
-            
             return municipalities;
         } catch (error) {
-            console.error('Error al buscar municipios por departamento:', error);
             return [];
         }
     }

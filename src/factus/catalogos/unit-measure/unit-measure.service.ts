@@ -7,7 +7,7 @@ import { FactusService } from '../../factus.service';
 
 @Injectable()
 export class UnitMeasureService implements OnModuleInit {
-  private unitMeasures: UnitMeasure[] = [];
+  public unitMeasures: UnitMeasure[] = [];
 
   constructor(
     private readonly httpService: HttpService,
@@ -45,10 +45,10 @@ export class UnitMeasureService implements OnModuleInit {
         : [];
       
       // Depuración: muestra la estructura de datos
-      console.log(`✅ Unidades sincronizadas: ${this.unitMeasures.length}`);
-      if (this.unitMeasures.length > 0) {
-        console.log('Ejemplo de unidad:', JSON.stringify(this.unitMeasures[0]).substring(0, 200));
-      }
+      // console.log(`✅ Unidades sincronizadas: ${this.unitMeasures.length}`);
+      // if (this.unitMeasures.length > 0) {
+      //   console.log('Ejemplo de unidad:', JSON.stringify(this.unitMeasures[0]).substring(0, 200));
+      // }
     } catch (error) {
       console.error('❌ Error syncing unit measures:', error.message);
       this.unitMeasures = []; // Inicializar como array vacío en caso de error
@@ -62,32 +62,15 @@ export class UnitMeasureService implements OnModuleInit {
 
   async findByCode(code: string): Promise<UnitMeasure | undefined> {
     try {
-      // Verificación adicional para evitar errores
       if (!Array.isArray(this.unitMeasures)) {
-        console.warn('⚠️ unitMeasures no es un array:', typeof this.unitMeasures);
         return undefined;
       }
-
-      // Depuración para buscar el código
-      console.log(`Buscando unidad con código: "${code}"`);
-      
-      const found = this.unitMeasures.find(unit => {
-        if (!unit || typeof unit !== 'object') return false;
-        
-        // Buscar en diferentes propiedades posibles según los logs
-        const unitCode = unit.code || unit.id;
-        const stringCode = String(unitCode).trim().toUpperCase();
-        const searchCode = String(code).trim().toUpperCase();
-        
-        const match = stringCode === searchCode;
-        if (match) console.log('✅ Encontrado:', unit);
-        
-        return match;
-      });
-      
-      return found; // Devuelve el objeto completo, no solo un booleano
+      // Busca por code o por id (ambos como string)
+      return this.unitMeasures.find(unit =>
+        String(unit.code).toUpperCase() === String(code).toUpperCase() ||
+        String(unit.id) === String(code)
+      );
     } catch (error) {
-      console.error('Error al buscar unidad de medida:', error);
       return undefined;
     }
   }
@@ -95,19 +78,19 @@ export class UnitMeasureService implements OnModuleInit {
   async findById(id: string | number): Promise<UnitMeasure | undefined> {
     try {
       if (!Array.isArray(this.unitMeasures)) {
-        console.warn('⚠️ unitMeasures no es un array:', typeof this.unitMeasures);
+        // console.warn('⚠️ unitMeasures no es un array:', typeof this.unitMeasures);
         return undefined;
       }
 
       const idStr = String(id).trim();
-      console.log(`Buscando unidad con ID: "${idStr}"`);
+      // console.log(`Buscando unidad con ID: "${idStr}"`);
       
       const found = this.unitMeasures.find(unit => {
         if (!unit || typeof unit !== 'object') return false;
         
         const unitId = String(unit.id).trim();
         const match = unitId === idStr;
-        if (match) console.log('✅ Encontrado por ID:', unit);
+        // if (match) console.log('✅ Encontrado por ID:', unit);
         
         return match;
       });

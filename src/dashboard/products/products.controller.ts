@@ -2,61 +2,52 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Quer
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { JwtAuthGuard } from '../../jwt/jwt-auth.guard'; 
+import { JwtAuthGuard } from '../../jwt/jwt-auth.guard';
 import { Product, ProductDocument } from './entities/product.entity'; 
-import { UsersService } from '../../users/users.service'; // Importar el servicio de usuario
-import { UnauthorizedException } from '@nestjs/common'; // Importar la excepción de no autorizado
+import { UsersService } from '../../users/users.service';
+import { UnauthorizedException } from '@nestjs/common';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService
-              ,private readonly userService: UsersService, // Inyectar el servicio de usuario
+  constructor(
+    private readonly productsService: ProductsService,
+    private readonly userService: UsersService,
   ) {}
 
-
   @Post()
-  @UseGuards(JwtAuthGuard) // Protege la ruta
-  async create(@Body() createProductDto: CreateProductDto, @Req() req) { // Añade @Req() req
-     const token = req.headers['authorization']?.split(' ')[1];
-   
-       if (!token) {
-         throw new UnauthorizedException('Token no proporcionado');
-       }
-   
-       // Obtener el ID del usuario logueado
-       const issuerId = await this.userService.getUserIdFromToken(token);
-       if (!issuerId) {
-         throw new Error('El emisor es obligatorio')}
-      return this.productsService.create(createProductDto, issuerId); // Pasa el userId al servicio
+  @UseGuards(JwtAuthGuard)
+  async create(@Body() createProductDto: CreateProductDto, @Req() req) {
+    const token = req.headers['authorization']?.split(' ')[1];
+    
+    if (!token) {
+      throw new UnauthorizedException('Token no proporcionado');
+    }
+    
+    const issuerId = await this.userService.getUserIdFromToken(token);
+    if (!issuerId) {
+      throw new Error('El emisor es obligatorio')
+    }
+    return this.productsService.create(createProductDto, issuerId);
   }
 
   @Get()
   @UseGuards(JwtAuthGuard)
   async findAll() {
-    return await this.productsService.findAll();
+    const products = await this.productsService.findAll();
+    return products || [];
   }
 
-  @Get('user/:userId') // Ruta para obtener products por userId
-  @UseGuards(JwtAuthGuard) // Protegido por JWT
+  @Get('user/:userId')
+  @UseGuards(JwtAuthGuard)
   async findAllByUserId(
     @Param('userId') userId: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
-  ): Promise<{ products: Product[]; total: number; page: number; totalPages: number }> {
+  ) {
     const skip = (page - 1) * limit;
-    const [products, total] = await Promise.all([
-      this.productsService.findAllByUser(userId, skip, limit),
-      this.productsService.countByUser(userId)
-    ]);
-    
-    return {
-      products,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit)
-    };
+    const products = await this.productsService.findAllByUser(userId, skip, limit);
+    return products || [];
   }
-
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)

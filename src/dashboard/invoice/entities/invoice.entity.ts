@@ -55,6 +55,9 @@ export class Invoice {
   @Prop({ enum: ['pending', 'completed', 'error'], default: 'pending' })
   status: string;
 
+  @Prop({ default: false })
+  isValidated: boolean;
+
   @Prop()
   notes?: string;
 

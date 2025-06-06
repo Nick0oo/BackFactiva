@@ -9,5 +9,5 @@ export class UnitMeasureController {
   findAll(): Promise<UnitMeasure[]> {
     return this.unitMeasureService.findAll();
   }
-  }
+}
 

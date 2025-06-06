@@ -1,6 +1,5 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { TributeService } from './tribute.service';
-import { Get } from '@nestjs/common';
 import { Tribute } from './dto/create-tributes.dto';
 
 @Controller('tribute')
