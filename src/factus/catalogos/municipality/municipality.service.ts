@@ -51,6 +51,32 @@ export class MunicipalityService implements OnModuleInit {
         return this.municipalities;
     }
 
+    async findAllDepartments(): Promise<string[]> {
+        try {
+            if (!Array.isArray(this.municipalities)) {
+                return [];
+            }
+            
+            // Obtener departamentos únicos y ordenados
+            const departments = [...new Set(
+                this.municipalities
+                    .filter(m => m && m.department && typeof m.department === 'string')
+                    .map(m => m.department.trim())
+            )].sort((a, b) => a.localeCompare(b, 'es'));
+
+            // Verificar que tenemos departamentos
+            if (departments.length === 0) {
+                console.warn('No se encontraron departamentos en los datos');
+                return [];
+            }
+
+            return departments;
+        } catch (error) {
+            console.error('Error al obtener departamentos:', error);
+            return [];
+        }
+    }
+
     async findByName(name: string): Promise<Municipality | undefined> {
         try {
             if (!Array.isArray(this.municipalities)) {
