@@ -1,9 +1,11 @@
 // factus.controller.ts
-import { Controller, Get, Post, Body, Param, UseGuards, BadRequestException, InternalServerErrorException } from '@nestjs/common';
-import { FactusService } from './factus.service';
+import { Controller, Get, Post, Body, Param, UseGuards, BadRequestException, InternalServerErrorException, HttpException, HttpStatus, Header, Res } from '@nestjs/common';
+import { FactusService, PdfResponse } from './factus.service';
 import { JwtAuthGuard } from '../jwt/jwt-auth.guard';
 import { InvoiceService } from '../dashboard/invoice/invoice.service';
 import { Types } from 'mongoose';
+import { Response } from 'express';
+import { StreamableFile } from '@nestjs/common';
 
 @Controller('factus')
 @UseGuards(JwtAuthGuard)
@@ -51,9 +53,13 @@ export class FactusController {
       }
 
       const validationResult = await this.factusService.validateInvoice(invoice);
+      
+      // Actualizar el estado de la factura y guardar la información de Factus
+      await this.invoiceService.updateStatus(id, 'completed', validationResult);
+
       return {
         success: true,
-        message: 'Factura validada exitosamente',
+        message: 'Factura validada y enviada exitosamente',
         data: validationResult
       };
     } catch (error) {
@@ -61,30 +67,28 @@ export class FactusController {
     }
   }
 
-  @Post('send/:id')
-  async sendInvoice(@Param('id') id: string): Promise<any> {
+
+  @Get('download-pdf-base64/:id')
+  async downloadInvoicePdfBase64(
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
     try {
-      if (!id) {
-        throw new BadRequestException('El ID de la factura es requerido');
-      }
-
-      const invoice = await this.invoiceService.findOne(id);
-      if (!invoice) {
-        throw new BadRequestException(`Factura con ID ${id} no encontrada`);
-      }
-
-      if (!invoice.isValidated) {
-        throw new BadRequestException('La factura debe ser validada antes de ser enviada');
-      }
-
-      const sendResult = await this.factusService.sendInvoiceToFactus(invoice);
-      return {
-        success: true,
-        message: 'Factura enviada exitosamente',
-        data: sendResult
-      };
+      const response = await this.factusService.downloadInvoicePdf(id);
+      
+      // Configurar los headers correctamente
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=${response.filename}`);
+      res.setHeader('Content-Length', response.pdf.length);
+      
+      // Enviar el buffer directamente
+      res.end(Buffer.from(response.pdf));
     } catch (error) {
-      throw error;
+      console.error('Error en la solicitud:', error);
+      throw new HttpException(
+        error.message || 'Error al descargar el PDF de la factura',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }
