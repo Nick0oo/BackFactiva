@@ -11,20 +11,8 @@ export class UsersController {
   @Get('me')
   public async getProfile(
     @Req() req: { user: { _id: string } },
-  ): Promise<{ name: string; role: string }> {
+  ): Promise<UserDocument> {
     const userId = req.user._id;
-    return this.usersService.getProfile(userId);
-  }
-  @Get()
-  public async findAll(): Promise<UserDocument[]> {
-    return this.usersService.findAll();
-  }
-
-  @Patch(':userId/roles/:roleId')
-  public async assignRole(
-    @Param('userId') userId: string,
-    @Param('roleId') roleId: string,
-  ): Promise<User> {
-    return this.usersService.assignRole(userId, roleId);
+    return this.usersService.findById(userId);
   }
 }

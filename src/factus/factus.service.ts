@@ -112,73 +112,6 @@ export class FactusService {
     return this.accessToken!;
   }
 
-  public async generarNumeroFactura(): Promise<number> {
-    // Obtener el rango de numeración de la factura de venta
-    const rangoFacturaVenta = await this.obtenerRangoFacturaDeVenta();
-
-    // Verificar que el número actual no haya excedido el límite
-    if (rangoFacturaVenta.nextNumber >= rangoFacturaVenta.to) {
-      throw new Error('Se ha alcanzado el límite máximo de facturas en el rango.');
-    }
-
-    // Incrementar el número actual para la próxima factura
-    const nuevoNumeroFactura = rangoFacturaVenta.nextNumber;
-
-    // Actualizar el campo 'current' en el rango de numeración
-    await this.actualizarRangoNumeroFactura(rangoFacturaVenta.id, nuevoNumeroFactura);
-
-    return nuevoNumeroFactura;
-  }
-
-  private async actualizarRangoNumeroFactura(rangoId: number, nuevoNumero: number): Promise<void> {
-    const url = `https://api-sandbox.factus.com.co/v1/numbering-ranges/${rangoId}`;
-    const headers = {
-      Authorization: `Bearer ${await this.getValidAccessToken()}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    };
-
-    const data = {
-      current: nuevoNumero,
-    };
-
-    try {
-      await lastValueFrom(
-        this.httpService.put(url, data, { headers })
-      );
-    } catch (error) {
-      throw new Error('Error al actualizar el número de la factura: ' + error.message);
-    }
-  }
-
-  async obtenerRangoFacturaDeVenta(): Promise<{ id: number; nextNumber: number; to: number }> {
-    const token = await this.getValidAccessToken();
-    const resp = await lastValueFrom(
-      this.httpService.get(`${this.baseUrl}/v1/numbering-ranges?document=21`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-    );
-
-    // 1) Si la API devuelve { data: [...] }
-    const list = Array.isArray(resp.data)
-      ? resp.data
-      : Array.isArray((resp.data as any).data)
-        ? (resp.data as any).data
-        : [];
-
-    if (!list.length) {
-      throw new Error('No se encontró ningún rango de numeración');
-    }
-
-    // 2) Si quieres buscar por prefijo:
-    const rango = list.find(r => r.prefix === 'FV') ?? list[0];
-
-    return {
-      id: rango.id,
-      nextNumber: Number(rango.current) + 1,
-      to: Number(rango.to), // Ensure 'to' is extracted from the API response
-    };
-  }
 
   async validateInvoice(invoice: any): Promise<any> {
     try {
@@ -267,21 +200,17 @@ export class FactusService {
   async downloadInvoicePdf(invoiceId: string): Promise<PdfResponse> {
     // 1. Buscar la factura por _id_
     const invoice = await this.invoiceService.findOne(invoiceId);
-    console.log('Factura _id:', invoiceId);
     if (!invoice) throw new Error('Factura no encontrada');
 
     // 2. Extraer el number de Factus
     const factusNumber = invoice.factusValidation?.data?.bill?.number;
-    console.log('Factus number usado:', factusNumber);
     if (!factusNumber) throw new Error('La factura no ha sido validada en Factus. No se puede descargar el PDF.');
 
     // 3. Usar ese number para pedir el PDF a Factus
     const token = await this.getValidAccessToken();
-    console.log('Token usado:', token);
-    console.log('URL:', `https://api-sandbox.factus.com.co/v1/bills/download-pdf/${factusNumber}`);
     const response = await firstValueFrom(
       this.httpService.get(
-        `https://api-sandbox.factus.com.co/v1/bills/download-pdf/${factusNumber}`,
+        `${this.baseUrl}/v1/bills/download-pdf/${factusNumber}`,
         { headers: { Authorization: `Bearer ${token}` } }
       )
     );

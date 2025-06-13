@@ -30,11 +30,6 @@ export class User {
   @Prop() mfaSecret?: string;
   @Prop()
   tokens?: string;
-  @Prop({
-    type: [{ type: Types.ObjectId, ref: 'Role' }],
-    default: [], // por si aún no tienes el ID
-  })
-  roles?: Types.ObjectId[];
   
 }
 

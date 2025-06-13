@@ -75,7 +75,7 @@ export class DashboardController {
     const userId = req.user._id; // Extrae el ID del usuario desde el JWT
 
     // Obtener facturas emitidas por el usuario logueado
-    return this.invoiceService.findByStatusAndUser(userId, 'completed');
+    return this.invoiceService.findByStatusAndUser(userId, 'completado');
   }
 
   // Obtener facturas con estado "no emitido"

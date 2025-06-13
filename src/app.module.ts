@@ -10,7 +10,6 @@ import { MfaModule } from './mfa/mfa.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 
 import * as config from './config';
-import { RolesModule } from './users/roles/roles.module';
 import { FactusModule } from './factus/factus.module';
 import { HttpModule } from '@nestjs/axios';
 
@@ -48,7 +47,6 @@ import { HttpModule } from '@nestjs/axios';
     UsersModule,
     MailModule,
     MfaModule,
-    RolesModule,
     FactusModule,
     HttpModule,
   ],

@@ -1,11 +1,9 @@
 // factus.controller.ts
 import { Controller, Get, Post, Body, Param, UseGuards, BadRequestException, InternalServerErrorException, HttpException, HttpStatus, Header, Res } from '@nestjs/common';
-import { FactusService, PdfResponse } from './factus.service';
+import { FactusService } from './factus.service';
 import { JwtAuthGuard } from '../jwt/jwt-auth.guard';
 import { InvoiceService } from '../dashboard/invoice/invoice.service';
-import { Types } from 'mongoose';
 import { Response } from 'express';
-import { StreamableFile } from '@nestjs/common';
 
 @Controller('factus')
 @UseGuards(JwtAuthGuard)
@@ -26,16 +24,6 @@ export class FactusController {
       };
     } catch (error) {
       throw new InternalServerErrorException('Error al obtener el token de acceso: ' + error.message);
-    }
-  }
-  // Endpoint para obtener el rango de numeración de Factus
-  @Get('numbering-range')
-  async obtenerRangoDeNumeracion(): Promise<any> {
-    try {
-      const rango = await this.factusService.obtenerRangoFacturaDeVenta();
-      return rango;
-    } catch (error) {
-      throw new InternalServerErrorException('Error al obtener el rango de numeración: ' + error.message);
     }
   }
 
@@ -66,7 +54,6 @@ export class FactusController {
       throw error;
     }
   }
-
 
   @Get('download-pdf-base64/:id')
   async downloadInvoicePdfBase64(
