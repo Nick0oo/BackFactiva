@@ -1,9 +1,8 @@
-// src/auth/dto/create-user.dto.ts
+
 import {
   IsEmail,
   IsString,
   IsOptional,
-  IsMongoId,
   MinLength,
   MaxLength,
   Matches
@@ -39,10 +38,6 @@ export class CreateUserDto {
     message: 'La contraseña no debe contener espacios en blanco',
   })
   password: string;
-  
-  @IsOptional()
-  @IsMongoId()
-  role?: string; // Referencia al _id de un rol (si creamos la entidad Role)
 
   @IsString({ message: 'El teléfono debe ser una cadena de texto' })
   @IsOptional()

@@ -27,7 +27,7 @@ export class InvoiceParty {
   @Prop({ required: true })
   address: string;
 
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true })
   email: string;
 
   @Prop({ required: true })

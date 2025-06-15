@@ -176,10 +176,23 @@ const { payment_method_code, ...restOfDto } = createInvoiceDto;
   }
 
   async findOne(_id: string): Promise<any> {
-    const invoice = await this.invoiceModel.findById(_id).populate('receiverId', 'names company trade_name').exec();
+    const invoice = await this.invoiceModel
+      .findById(_id)
+      .populate({
+        path: 'receiverId',
+        select: 'identification_document_id identification dv company trade_name names address email phone legal_organization_id tribute_id municipality_id'
+      })
+      .populate({
+        path: 'items.productId',
+        select: 'code_reference name price unit_measure standard_code_id tribute_id'
+      })
+      .exec();
+
     if (!invoice) {
       throw new NotFoundException(`Invoice with ID ${_id} not found`);
     }
+
+    console.log('Factura encontrada:', JSON.stringify(invoice, null, 2));
     return this.enrichInvoiceData(invoice.toObject());
   }
 
@@ -282,16 +295,21 @@ const { payment_method_code, ...restOfDto } = createInvoiceDto;
   async validateInvoiceWithFactus(id: string, factusService: any): Promise<InvoiceDocument> {
     const invoice = await this.invoiceModel
       .findById(id)
-      .populate('receiverId')
+      .populate({
+        path: 'receiverId',
+        select: 'identification_document_id identification dv company trade_name names address email phone legal_organization_id tribute_id municipality_id'
+      })
       .populate({
         path: 'items.productId',
-        select: 'name code_reference price unit_measure standard_code_id tribute_id'
+        select: 'code_reference name price unit_measure standard_code_id tribute_id'
       })
       .exec();
 
     if (!invoice) {
       throw new NotFoundException(`Invoice with ID ${id} not found`);
     }
+
+    console.log('Factura antes de validar:', JSON.stringify(invoice, null, 2));
 
     try {
       // Validar con Factus
@@ -324,5 +342,35 @@ const { payment_method_code, ...restOfDto } = createInvoiceDto;
       });
       throw new BadRequestException(`Error al validar la factura con Factus: ${error.message}`);
     }
+  }
+
+  async updateStatus(id: string, status: string, factusData?: any): Promise<InvoiceDocument> {
+    const updateData: any = { 
+      status: status,
+      isValidated: true
+    };
+
+    // Si hay datos de Factus, los agregamos al objeto de actualización
+    if (factusData) {
+      updateData.factusValidation = factusData;
+      // Si Factus devuelve un número de factura, lo guardamos
+      if (factusData.number) {
+        updateData.factusInvoiceNumber = factusData.number;
+      }
+    }
+
+    const updatedInvoice = await this.invoiceModel
+      .findByIdAndUpdate(
+        id,
+        { $set: updateData },
+        { new: true }
+      )
+      .exec();
+
+    if (!updatedInvoice) {
+      throw new NotFoundException(`Invoice with ID ${id} not found`);
+    }
+
+    return updatedInvoice;
   }
 }

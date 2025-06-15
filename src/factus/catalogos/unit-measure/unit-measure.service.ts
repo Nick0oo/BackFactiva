@@ -3,16 +3,21 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { UnitMeasure } from './dto/unit-measure.dto';
 import { FactusService } from '../../factus.service';
+import { ConfigService } from '@nestjs/config';
 
 
 @Injectable()
 export class UnitMeasureService implements OnModuleInit {
   public unitMeasures: UnitMeasure[] = [];
+  private readonly baseUrl: string;
 
   constructor(
     private readonly httpService: HttpService,
-    private readonly factusService: FactusService
-  ) { }
+    private readonly factusService: FactusService,
+    private readonly configService: ConfigService
+  ) {
+    this.baseUrl = this.configService.get<string>('FACTUS_BASE_URL') ?? 'https://api-sandbox.factus.com.co';
+  }
 
   async onModuleInit() {
     await this.syncFromFactus();
@@ -26,7 +31,7 @@ export class UnitMeasureService implements OnModuleInit {
 
       // Hacer la solicitud con el token en el header
       const response = await firstValueFrom(
-        this.httpService.get('https://api-sandbox.factus.com.co/v1/measurement-units', {
+        this.httpService.get(`${this.baseUrl}/v1/measurement-units`, {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: 'application/json'

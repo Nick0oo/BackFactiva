@@ -3,15 +3,20 @@ import { Municipality } from './dto/municipality.dto';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { FactusService } from 'src/factus/factus.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class MunicipalityService implements OnModuleInit {
     private municipalities: Municipality[] = [];
+    private readonly baseUrl: string;
 
     constructor(
         private readonly httpService: HttpService,
-        private readonly factusService: FactusService
-    ) { }
+        private readonly factusService: FactusService,
+        private readonly configService: ConfigService
+    ) {
+        this.baseUrl = this.configService.get<string>('FACTUS_BASE_URL') ?? 'https://api-sandbox.factus.com.co';
+    }
 
     async onModuleInit() {
         await this.syncFromFactus();
@@ -24,7 +29,7 @@ export class MunicipalityService implements OnModuleInit {
 
             // Hacer la solicitud con el token en el header
             const response = await firstValueFrom(
-                this.httpService.get('https://api-sandbox.factus.com.co/v1/municipalities', {
+                this.httpService.get(`${this.baseUrl}/v1/municipalities`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                         Accept: 'application/json'

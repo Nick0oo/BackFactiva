@@ -1,9 +1,10 @@
 // factus.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { lastValueFrom } from 'rxjs'; // Utilizamos lastValueFrom para convertir observables en promesas
+import { lastValueFrom, firstValueFrom } from 'rxjs'; // Utilizamos lastValueFrom para convertir observables en promesas
 import * as qs from 'qs'; // Importamos el módulo qs
+import { InvoiceService } from '../dashboard/invoice/invoice.service';
 
 export interface FactusTokenResponse {
   access_token: string;
@@ -13,11 +14,21 @@ export interface FactusTokenResponse {
   scope?: string; // opcional, depende si la API lo devuelve
 }
 
+export interface PdfResponse {
+  pdf: Buffer;
+  filename: string;
+}
+
 @Injectable()
 export class FactusService {
   private readonly baseUrl: string;
 
-  constructor(private readonly httpService: HttpService, private configService: ConfigService) {
+  constructor(
+    private readonly httpService: HttpService,
+    private configService: ConfigService,
+    @Inject(forwardRef(() => InvoiceService))
+    private invoiceService: InvoiceService,
+  ) {
     this.baseUrl = this.configService.get<string>('FACTUS_BASE_URL') ?? 'https://api-sandbox.factus.com.co';
   }
 
@@ -101,211 +112,113 @@ export class FactusService {
     return this.accessToken!;
   }
 
-  public async generarNumeroFactura(): Promise<number> {
-    // Obtener el rango de numeración de la factura de venta
-    const rangoFacturaVenta = await this.obtenerRangoFacturaDeVenta();
-
-    // Verificar que el número actual no haya excedido el límite
-    if (rangoFacturaVenta.nextNumber >= rangoFacturaVenta.to) {
-      throw new Error('Se ha alcanzado el límite máximo de facturas en el rango.');
-    }
-
-    // Incrementar el número actual para la próxima factura
-    const nuevoNumeroFactura = rangoFacturaVenta.nextNumber;
-
-    // Actualizar el campo 'current' en el rango de numeración
-    await this.actualizarRangoNumeroFactura(rangoFacturaVenta.id, nuevoNumeroFactura);
-
-    return nuevoNumeroFactura;
-  }
-
-  private async actualizarRangoNumeroFactura(rangoId: number, nuevoNumero: number): Promise<void> {
-    const url = `https://api-sandbox.factus.com.co/v1/numbering-ranges/${rangoId}`;
-    const headers = {
-      Authorization: `Bearer ${await this.getValidAccessToken()}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    };
-
-    const data = {
-      current: nuevoNumero,
-    };
-
-    try {
-      await lastValueFrom(
-        this.httpService.put(url, data, { headers })
-      );
-    } catch (error) {
-      throw new Error('Error al actualizar el número de la factura: ' + error.message);
-    }
-  }
-
-  async obtenerRangoFacturaDeVenta(): Promise<{ id: number; nextNumber: number; to: number }> {
-    const token = await this.getValidAccessToken();
-    const resp = await lastValueFrom(
-      this.httpService.get(`${this.baseUrl}/v1/numbering-ranges?document=21`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-    );
-
-    // 1) Si la API devuelve { data: [...] }
-    const list = Array.isArray(resp.data)
-      ? resp.data
-      : Array.isArray((resp.data as any).data)
-        ? (resp.data as any).data
-        : [];
-
-    if (!list.length) {
-      throw new Error('No se encontró ningún rango de numeración');
-    }
-
-    // 2) Si quieres buscar por prefijo:
-    const rango = list.find(r => r.prefix === 'FV') ?? list[0];
-
-    return {
-      id: rango.id,
-      nextNumber: Number(rango.current) + 1,
-      to: Number(rango.to), // Ensure 'to' is extracted from the API response
-    };
-  }
 
   async validateInvoice(invoice: any): Promise<any> {
-    const url = 'https://api-sandbox.factus.com.co/v1/bills/validate';
-    const headers = {
-      Authorization: `Bearer ${await this.getValidAccessToken()}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    };
-
-    interface Invoice {
-      numberingRangeId: number;
-      referenceCode: string;
-      notes?: string;
-      paymentMethodCode: string;
-      receiverId: ReceiverId;
-      items: InvoiceItem[];
-    }
-
-    interface ReceiverId {
-      identification: string;
-      dv: string;
-      company: string;
-      trade_name: string;
-      names: string;
-      address: string;
-      email: string;
-      phone: string;
-      legal_organization_id: number;
-      tribute_id: number;
-      identification_document_id: number;
-      municipality_id: number;
-    }
-
-    interface InvoiceItem {
-      _id: string;
-      productId: Product;
-      quantity: number;
-      discount: number;
-      discount_rate: number;
-      tax_rate: number;
-      is_excluded: boolean;
-      tribute_id: number;
-      withholding_taxes: any; // Replace `any` with a more specific type if available
-    }
-
-    interface Product {
-      code_reference: string;
-      name: string;
-      price: number;
-      unit_measure_id: number;
-      standard_code_id: number;
-    }
-
-    const invoiceData: {
-      numbering_range_id: number;
-      reference_code: string;
-      observation: string;
-      payment_method_code: string;
-      customer: ReceiverId;
-      items: {
-        code_reference: string;
-        name: string;
-        quantity: number;
-        price: number;
-        discount: number;
-        discount_rate: number;
-        tax_rate: number;
-        unit_measure_id: number;
-        standard_code_id: number;
-        is_excluded: boolean;
-        tribute_id: number;
-        withholding_taxes: any; // Replace `any` with a more specific type if available
-      }[];
-    } = {
-      numbering_range_id: invoice.numbering_range_id,
-      reference_code: invoice.reference_code,
-      observation: invoice.notes || '',
-      payment_method_code: invoice.payment_method_code,
-      customer: {
-        identification: invoice.receiverId.identification,
-        dv: invoice.receiverId.dv,
-        company: invoice.receiverId.company,
-        trade_name: invoice.receiverId.trade_name,
-        names: invoice.receiverId.names,
-        address: invoice.receiverId.address,
-        email: invoice.receiverId.email,
-        phone: invoice.receiverId.phone,
-        legal_organization_id: invoice.receiverId.legal_organization_id,
-        tribute_id: invoice.receiverId.tribute_id,
-        identification_document_id: invoice.receiverId.identification_document_id,
-        municipality_id: invoice.receiverId.municipality_id,
-      },
-      items: invoice.items.map(i => {
-
-        if (!i.productId) { // Añade una verificación por si productId no se pobló
-          throw new Error(`Producto no encontrado para el item con ID ${i._id}`);
-        }
-
-        return {
-          code_reference: i.productId.code_reference,
-          name: i.productId.name,
-          quantity: i.quantity,
-          price: i.productId.price,
-          discount: i.discount,
-          discount_rate: i.discount_rate,
-          tax_rate: i.tax_rate,
-          unit_measure_id: i.productId.unit_measure,
-          standard_code_id: i.productId.standard_code_id,
-          is_excluded: i.is_excluded,
-          tribute_id: i.tribute_id,
-          withholding_taxes: Array.isArray(i.withholding_taxes) ? i.withholding_taxes.filter(wt => wt && wt.code) : [],
-        };
-      }),
-    };
-
-    const resp = await lastValueFrom(this.httpService.post(url, invoiceData, { headers }));
-    return resp.data;
-  }
-
-  async sendInvoiceToFactus(invoicePayload: any): Promise<any> {
-    const token = await this.getValidAccessToken();
-
-    const url = 'https://api-sandbox.factus.com.co/v1/bills';
-
     try {
+      
+      // Verificar que la factura tenga un receptor
+      if (!invoice.receiverId) {
+        throw new Error('La factura debe tener un receptor');
+      }
+
+
+      // Verificar que la factura tenga items
+      if (!invoice.items || invoice.items.length === 0) {
+        throw new Error('La factura debe tener al menos un item');
+      }
+
+      // Transformar los datos al formato esperado por Factus
+      const payload = {
+        numbering_range_id: invoice.numbering_range_id,
+        reference_code: invoice.reference_code,
+        observation: invoice.notes,
+        payment_method_code: invoice.payment_method_code,
+        customer: {
+          identification: invoice.receiverId.identification,
+          dv: invoice.receiverId.dv || '',
+          company: invoice.receiverId.company || '',
+          trade_name: invoice.receiverId.trade_name || '',
+          names: invoice.receiverId.names,
+          address: invoice.receiverId.address,
+          email: invoice.receiverId.email,
+          phone: invoice.receiverId.phone,
+          legal_organization_id: invoice.receiverId.legal_organization_id,
+          tribute_id: invoice.receiverId.tribute_id,
+          identification_document_id: invoice.receiverId.identification_document_id,
+          municipality_id: invoice.receiverId.municipality_id.toString()
+        },
+        items: invoice.items.map(i => {
+
+          return {
+            code_reference: i.productId.code_reference,
+            name: i.productId.name,
+            quantity: i.quantity,
+            price: i.productId.price,
+            discount: i.discount_rate || 0,
+            discount_rate: i.discount_rate || 0,
+            tax_rate: Number(i.tax_rate) || 0,
+            unit_measure_id: i.productId.unit_measure.toString(),
+            standard_code_id: i.productId.standard_code_id.toString(),
+            is_excluded: i.is_excluded || 0,
+            tribute_id: Number(i.productId.tribute_id),
+            withholding_taxes: i.withholding_taxes || []
+          };
+        })
+      };
+
+
+      const token = await this.getValidAccessToken();
       const response = await lastValueFrom(
-        this.httpService.post(url, invoicePayload, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+        this.httpService.post(
+          `${this.baseUrl}/v1/bills`,
+          payload,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
           },
-        }),
+        ),
       );
 
-      return response.data; // Factus devuelve el objeto con datos como factusId, número, etc.
+      // Extraer el número de factura de la respuesta
+      const factusNumber = response.data.bill.number;
+      
+      // Actualizar la factura con los datos de validación y el número
+      await this.invoiceService.updateStatus(invoice._id, 'completed', {
+        ...response.data,
+        number: factusNumber
+      });
+
+      return response.data;
     } catch (error) {
-      console.error('Error al enviar la factura a Factus:', error.response?.data || error.message);
-      throw new Error('No se pudo enviar la factura a Factus');
+      console.error('Error en la validación de la factura:', error);
+      throw error;
     }
+  }
+
+  async downloadInvoicePdf(invoiceId: string): Promise<PdfResponse> {
+    // 1. Buscar la factura por _id_
+    const invoice = await this.invoiceService.findOne(invoiceId);
+    if (!invoice) throw new Error('Factura no encontrada');
+
+    // 2. Extraer el number de Factus
+    const factusNumber = invoice.factusValidation?.data?.bill?.number;
+    if (!factusNumber) throw new Error('La factura no ha sido validada en Factus. No se puede descargar el PDF.');
+
+    // 3. Usar ese number para pedir el PDF a Factus
+    const token = await this.getValidAccessToken();
+    const response = await firstValueFrom(
+      this.httpService.get(
+        `${this.baseUrl}/v1/bills/download-pdf/${factusNumber}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+    );
+
+    // 4. Extraer el base64 y convertirlo a Buffer
+    const base64 = response.data.data.pdf_base_64_encoded;
+    const filename = response.data.data.file_name + '.pdf';
+    const buffer = Buffer.from(base64, 'base64');
+    return { pdf: buffer, filename };
   }
 }

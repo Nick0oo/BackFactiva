@@ -3,15 +3,20 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Tribute } from './dto/create-tributes.dto';
 import { FactusService } from 'src/factus/factus.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class TributeService implements OnModuleInit {
   private tributes: Tribute[] = [];
+  private readonly baseUrl: string;
 
    constructor(
       private readonly httpService: HttpService,
-      private readonly factusService: FactusService
-    ) { }
+      private readonly factusService: FactusService,
+      private readonly configService: ConfigService
+    ) {
+      this.baseUrl = this.configService.get<string>('FACTUS_BASE_URL') ?? 'https://api-sandbox.factus.com.co';
+    }
 
   async onModuleInit() {
     await this.syncFromFactus();
@@ -24,7 +29,7 @@ export class TributeService implements OnModuleInit {
 
       // Hacer la solicitud con el token en el header
       const response = await firstValueFrom(
-        this.httpService.get('https://api-sandbox.factus.com.co/v1/tributes/products?name=', {
+        this.httpService.get(`${this.baseUrl}/v1/tributes/products?name=`, {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: 'application/json'
