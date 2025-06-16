@@ -50,8 +50,10 @@ export class InvoicePartiesController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
-  async update(@Param('id') id: string, @Body() updateInvoicePartyDto: UpdateInvoicePartyDto) { // Asegúrate de que 'id' sea string
-    return await this.invoicePartiesService.update(id, updateInvoicePartyDto);
+  async update(@Param('id') id: string, @Body() updateInvoicePartyDto: UpdateInvoicePartyDto, @Req() req) { // Asegúrate de que 'id' sea string
+    const token = req.headers['authorization']?.split(' ')[1];
+    const issuerId = await this.userService.getUserIdFromToken(token);
+    return await this.invoicePartiesService.update(id, updateInvoicePartyDto, issuerId);
   }
 
   @Delete(':id')

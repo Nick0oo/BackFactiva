@@ -115,24 +115,42 @@ export class FactusService {
 
   async validateInvoice(invoice: any): Promise<any> {
     try {
-      
       // Verificar que la factura tenga un receptor
       if (!invoice.receiverId) {
         throw new Error('La factura debe tener un receptor');
       }
-
 
       // Verificar que la factura tenga items
       if (!invoice.items || invoice.items.length === 0) {
         throw new Error('La factura debe tener al menos un item');
       }
 
+      // Verificar campos requeridos
+      const requiredFields = ['reference_code', 'payment_method_code'];
+      for (const field of requiredFields) {
+        if (!invoice[field]) {
+          throw new Error(`El campo ${field} es requerido`);
+        }
+      }
+      // Asegurarnos de que numbering_range_id sea un número
+      let numberingRangeId;
+      if (typeof invoice.numbering_range_id === 'string') {
+        numberingRangeId = parseInt(invoice.numbering_range_id, 10);
+      } else {
+        numberingRangeId = Number(invoice.numbering_range_id);
+      }
+
+      // Verificar si es un número válido
+      if (isNaN(numberingRangeId)) {
+        numberingRangeId = 8;
+      }
+
       // Transformar los datos al formato esperado por Factus
       const payload = {
-        numbering_range_id: invoice.numbering_range_id,
+        numbering_range_id: numberingRangeId,
         reference_code: invoice.reference_code,
-        observation: invoice.notes,
-        payment_method_code: invoice.payment_method_code,
+        observation: invoice.notes || '',
+        payment_method_code: Number(invoice.payment_method_code),
         customer: {
           identification: invoice.receiverId.identification,
           dv: invoice.receiverId.dv || '',
@@ -142,57 +160,78 @@ export class FactusService {
           address: invoice.receiverId.address,
           email: invoice.receiverId.email,
           phone: invoice.receiverId.phone,
-          legal_organization_id: invoice.receiverId.legal_organization_id,
-          tribute_id: invoice.receiverId.tribute_id,
-          identification_document_id: invoice.receiverId.identification_document_id,
+          legal_organization_id: Number(invoice.receiverId.legal_organization_id),
+          tribute_id: Number(invoice.receiverId.tribute_id),
+          identification_document_id: Number(invoice.receiverId.identification_document_id),
           municipality_id: invoice.receiverId.municipality_id.toString()
         },
         items: invoice.items.map(i => {
+          if (!i.productId) {
+            throw new Error('Cada item debe tener un producto asociado');
+          }
+
+          // Asegurar que unit_measure y standard_code sean números
+          const unitMeasureId = typeof i.productId.unit_measure === 'string' 
+            ? Number(i.productId.unit_measure) 
+            : i.productId.unit_measure;
+
+          const standardCodeId = typeof i.productId.standard_code_id === 'string'
+            ? Number(i.productId.standard_code_id)
+            : i.productId.standard_code_id;
 
           return {
             code_reference: i.productId.code_reference,
             name: i.productId.name,
-            quantity: i.quantity,
-            price: i.productId.price,
-            discount: i.discount_rate || 0,
-            discount_rate: i.discount_rate || 0,
-            tax_rate: Number(i.tax_rate) || 0,
-            unit_measure_id: i.productId.unit_measure.toString(),
-            standard_code_id: i.productId.standard_code_id.toString(),
-            is_excluded: i.is_excluded || 0,
+            quantity: Number(i.quantity),
+            price: Number(i.productId.price),
+            discount: Number(i.discount_rate || 0),
+            discount_rate: Number(i.discount_rate || 0),
+            tax_rate: Number(i.tax_rate || 0),
+            unit_measure_id: unitMeasureId,
+            standard_code_id: standardCodeId,
+            is_excluded: Number(i.is_excluded || 0),
             tribute_id: Number(i.productId.tribute_id),
             withholding_taxes: i.withholding_taxes || []
           };
         })
       };
 
-
       const token = await this.getValidAccessToken();
-      const response = await lastValueFrom(
-        this.httpService.post(
-          `${this.baseUrl}/v1/bills`,
-          payload,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
+
+      try {
+        const response = await lastValueFrom(
+          this.httpService.post(
+            `${this.baseUrl}/v1/bills/validate`,
+            payload,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
             },
-          },
-        ),
-      );
+          ),
+        );
 
-      // Extraer el número de factura de la respuesta
-      const factusNumber = response.data.bill.number;
-      
-      // Actualizar la factura con los datos de validación y el número
-      await this.invoiceService.updateStatus(invoice._id, 'completed', {
-        ...response.data,
-        number: factusNumber
-      });
+        // Verificar si la respuesta tiene datos
+        if (!response.data) {
+          console.error('Respuesta vacía de Factus');
+          throw new Error('La respuesta de Factus está vacía');
+        }
 
-      return response.data;
+        // La respuesta ya contiene la factura validada
+        const validatedInvoice = response.data;
+        
+        // Asegurarnos de que el ID sea un string
+        const invoiceId = invoice._id.toString();
+        
+        // Actualizar la factura con los datos de validación
+        const updatedInvoice = await this.invoiceService.updateStatus(invoiceId, 'completed', validatedInvoice);
+
+        return validatedInvoice;
+      } catch (error) {
+        throw error;
+      }
     } catch (error) {
-      console.error('Error en la validación de la factura:', error);
       throw error;
     }
   }
@@ -220,5 +259,26 @@ export class FactusService {
     const filename = response.data.data.file_name + '.pdf';
     const buffer = Buffer.from(base64, 'base64');
     return { pdf: buffer, filename };
+  }
+
+  async getNumberingRanges(): Promise<any> {
+    try {
+      const token = await this.getValidAccessToken();
+      const response = await lastValueFrom(
+        this.httpService.get(
+          `${this.baseUrl}/v1/numbering-ranges`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        ),
+      );
+
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 }
