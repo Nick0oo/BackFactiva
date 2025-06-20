@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { UpdateInvoicePartyDto } from './dto/update-invoice_party.dto';
 import { CreateInvoicePartyDto } from './dto/create-invoice_party.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -78,7 +78,17 @@ export class InvoicePartiesService {
   async update(
     id: string,
     updateInvoicePartyDto: UpdateInvoicePartyDto,
+    issuerId: string,
   ): Promise<InvoicePartyDocument> {
+    if (!issuerId) {
+      throw new BadRequestException('El ID del emisor es requerido');
+    }
+
+    const invoiceParty = await this.invoicePartyModel.findById(id).select('issuerId').exec();
+    if (invoiceParty && invoiceParty.issuerId.toString() !== issuerId) {
+      throw new ForbiddenException('No tienes permisos para actualizar este cliente');
+    }
+
     const updatedInvoiceParty = await this.invoicePartyModel.findByIdAndUpdate(
       id,
       updateInvoicePartyDto,

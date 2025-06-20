@@ -55,6 +55,7 @@ export class FactusController {
     }
   }
 
+  // Endpoint para descargar el PDF de la factura
   @Get('download-pdf-base64/:id')
   async downloadInvoicePdfBase64(
     @Param('id') id: string,
@@ -75,6 +76,19 @@ export class FactusController {
       throw new HttpException(
         error.message || 'Error al descargar el PDF de la factura',
         HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('numbering-ranges')
+  async getNumberingRanges() {
+    try {
+      const ranges = await this.factusService.getNumberingRanges();
+      return ranges;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Error al obtener los rangos de numeración',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }

@@ -210,7 +210,7 @@ export class ProductsService {
         updateData.unit_measure = unitMeasure.id || unitMeasure.code;
       }
 
-      // Si se está actualizando el tributo
+      // Si se está actualizando el tributo 
       if (updateProductDto.tribute_id) {
         const tribute = await this.validateTribute(updateProductDto.tribute_id);
         updateData.tribute_id = tribute.id || tribute.code;
