@@ -113,6 +113,13 @@ export class AuthController {
       mfaRequired, // Se indica si MFA es necesario
     };
   }
+    @Options('login')
+  handleLoginOptions(@Req() req: Request, @Res() res: Response) {
+    res.header('Access-Control-Allow-Origin', '*'); // Puedes restringirlo a tu frontend si prefieres
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
+    return res.sendStatus(204);
+  }
 
   @Post('register')
   async register(@Body() createUserDto: CreateUserDto, @Res() res: Response) {
