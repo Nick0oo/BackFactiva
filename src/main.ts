@@ -7,29 +7,10 @@ import * as dotenv from 'dotenv';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   dotenv.config();
-  const env = process.env.NODE_ENV || 'development';
 
-  // Lee los orígenes permitidos desde variables de entorno
-  const allowedOrigins = (
-    env === 'production'
-      ? process.env.CORS_ORIGIN_PROD || ''
-      : process.env.CORS_ORIGIN_DEV || 'http://localhost:4000'
-  )
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean); // Elimina strings vacíos
-
+  // ⚠️ CORS abierto para cualquier origen
   app.enableCors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      // Permite peticiones sin origen (por ejemplo, Postman, SSR, etc.)
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS blocked for origin: ${origin}`));
-      }
-    },
+    origin: true,
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Accept, Authorization',
