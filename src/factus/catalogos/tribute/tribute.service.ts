@@ -3,15 +3,20 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Tribute } from './dto/create-tributes.dto';
 import { FactusService } from 'src/factus/factus.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class TributeService implements OnModuleInit {
   private tributes: Tribute[] = [];
+  private readonly baseUrl: string;
 
    constructor(
       private readonly httpService: HttpService,
-      private readonly factusService: FactusService
-    ) { }
+      private readonly factusService: FactusService,
+      private readonly configService: ConfigService
+    ) {
+      this.baseUrl = this.configService.get<string>('FACTUS_BASE_URL') ?? 'https://api-sandbox.factus.com.co';
+    }
 
   async onModuleInit() {
     await this.syncFromFactus();
@@ -24,7 +29,7 @@ export class TributeService implements OnModuleInit {
 
       // Hacer la solicitud con el token en el header
       const response = await firstValueFrom(
-        this.httpService.get('https://api-sandbox.factus.com.co/v1/tributes/products?name=', {
+        this.httpService.get(`${this.baseUrl}/v1/tributes/products?name=`, {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: 'application/json'
@@ -41,9 +46,8 @@ export class TributeService implements OnModuleInit {
         ? tributesData
         : [];
 
-      console.log(`✔️ tributos sincronizadas desde Factus: ${this.tributes.length}`);
       if (this.tributes.length > 0) {
-        console.log('Ejemplo de tributo:', JSON.stringify(this.tributes[0]).substring(0, 200));
+        // console.log('Ejemplo de tributo:', JSON.stringify(this.tributes[0]).substring(0, 200));
       }
     } catch (error) {
       console.error('❌ Error al sincronizar tributos', error.message);
@@ -59,12 +63,12 @@ export class TributeService implements OnModuleInit {
     try {
       // Verificación adicional para evitar errores
       if (!Array.isArray(this.tributes)) {
-        console.warn('⚠️ tributes no es un array:', typeof this.tributes);
+        // console.warn('⚠️ tributes no es un array:', typeof this.tributes);
         return undefined;
       }
 
       // Depuración para buscar el código
-      console.log(`Buscando tributo con código: "${code}"`);
+      // console.log(`Buscando tributo con código: "${code}"`);
       
       const found = this.tributes.find(tribute => {
         if (!tribute || typeof tribute !== 'object') return false;
@@ -75,7 +79,7 @@ export class TributeService implements OnModuleInit {
         const searchCode = String(code).trim().toUpperCase();
         
         const match = stringCode === searchCode;
-        if (match) console.log('✅ Encontrado:', tribute);
+        // if (match) console.log('✅ Encontrado:', tribute);
         
         return match;
       });
@@ -90,19 +94,19 @@ export class TributeService implements OnModuleInit {
   async findById(id: string | number): Promise<Tribute | undefined> {
     try {
       if (!Array.isArray(this.tributes)) {
-        console.warn('⚠️ tributes no es un array:', typeof this.tributes);
+        // console.warn('⚠️ tributes no es un array:', typeof this.tributes);
         return undefined;
       }
 
       const idStr = String(id).trim();
-      console.log(`Buscando tributo con ID: "${idStr}"`);
+      // console.log(`Buscando tributo con ID: "${idStr}"`);
       
       const found = this.tributes.find(tribute => {
         if (!tribute || typeof tribute !== 'object') return false;
         
         const tributeId = String(tribute.id).trim();
         const match = tributeId === idStr;
-        if (match) console.log('✅ Encontrado por ID:', tribute);
+        // if (match) console.log('✅ Encontrado por ID:', tribute);
         
         return match;
       });

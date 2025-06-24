@@ -13,7 +13,6 @@ import { InternalServerErrorException } from '@nestjs/common/exceptions/internal
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    @InjectModel('Role') private roleModel: Model<any>, // Replace 'any' with the appropriate RoleDocument type if available
     private readonly jwtService: JwtService, // Inject JwtService
   ) { }
 
@@ -23,12 +22,10 @@ export class UsersService {
         (createUserDto.password ?? '').trim(),
         10,
       );
-      const userRole = await this.roleModel.findOne({ name: 'user' });
 
       const user = new this.userModel({
         ...createUserDto,
         password: hashedPassword,
-        roles: [userRole?._id],
       });
 
       const savedUser = await user.save();
@@ -88,7 +85,6 @@ export class UsersService {
 
   async findById(id: string): Promise<UserDocument> {
     const user = await this.userModel.findById(id).exec();
-    console.log('User found:', id);
     if (!user) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
@@ -146,7 +142,6 @@ export class UsersService {
       }
       user.password = newHashedPassword; // Asigna el nuevo hash
       await user.save(); // ¡Guarda el cambio!
-      console.log(`Contraseña actualizada para usuario: ${userId}`);
       return user;
     } catch (error) {
       console.error(`Error al actualizar contraseña para ${userId}:`, error);
@@ -181,33 +176,6 @@ export class UsersService {
     return updatedUser;
   }
 
-  async assignRole(userId: string, roleId: string): Promise<User> {
-    const user = await this.userModel.findById(userId);
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    if (!user.roles?.some(role => role.toString() === roleId)) {
-      const role = await this.roleModel.findById(roleId).exec();
-      if (!role) {
-        throw new NotFoundException('Role not found');
-      }
-      if (!user.roles) {
-        user.roles = [];
-      }
-      user.roles.push(role);
-    }
-
-    return user.save();
-  }
-  async findUserWithRoles(userId: string): Promise<User> {
-    const user = await this.userModel.findById(userId).populate('roles').exec();
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-    return user;
-  }
-
   async findUserByToken(token: string): Promise<UserDocument | null> {
     try {
       const decoded = this.jwtService.verify(token);
@@ -226,23 +194,5 @@ export class UsersService {
     } catch (error) {
       throw new UnauthorizedException('Token inválido o expirado');
     }
-  }
-  async getProfile(userId: string): Promise<{ name: string; role: string }> {
-    const user = await this.userModel
-      .findById(userId)
-      .populate('roles', 'name') // <- probablemente debería ser 'roles'
-      .lean()
-      .exec();
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    // Maneja roles como array si es así en tu schema
-    const roleName = user.roles && user.roles.length > 0
-      ? (user.roles[0] as any).name  // toma el primer rol
-      : 'Sin rol';
-
-    return { name: user.name, role: roleName };
   }
 }

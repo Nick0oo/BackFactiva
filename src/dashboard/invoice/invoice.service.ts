@@ -7,6 +7,7 @@ import { Invoice } from './entities/invoice.entity';
 import { InvoiceDocument } from './entities/invoice.entity';
 import { BadRequestException, InternalServerErrorException } from '@nestjs/common'; // Importar excepciones
 import { PaymentMethodCode } from 'src/factus/catalogos/standard-code/catalogs/enum/payment-method-code.enum'; // Importar el enum de PaymentMethodCode
+import { PaymentMethodCodeLabels } from 'src/factus/catalogos/standard-code/catalogs/labels/payment-method-code.label';
 import { InvoicePartiesService } from '../invoice_parties/invoice_parties.service'; // Importar el servicio
 import { ProductsService } from '../products/products.service'; // Importar el servicio de productos
 
@@ -89,7 +90,7 @@ export class InvoiceService {
   let methodNumber;
 
 // Verificar si es un número o una cadena
-if (/^\d+$/.test(methodInput)) {
+if (/^\d+$/.test(String(methodInput))) {
   // Es un código numérico (como "10")
   methodNumber = Number(methodInput);
   
@@ -132,13 +133,24 @@ const { payment_method_code, ...restOfDto } = createInvoiceDto;
       console.error("Error al guardar la factura:", error);
       throw new InternalServerErrorException("No se pudo guardar la factura en la base de datos.");
     }
+
     return savedInvoice;
   }
   
 
   async saveValidationResult(_id: Types.ObjectId, result: any): Promise<InvoiceDocument> {
     const updatedInvoice = await this.invoiceModel
-      .findByIdAndUpdate(_id, { $set: { factusValidation: result } }, { new: true })
+      .findByIdAndUpdate(
+        _id,
+        { 
+          $set: { 
+            factusValidation: result,
+            isValidated: true,
+            status: 'pending' // Aseguramos que el estado sea 'pending' después de la validación
+          } 
+        },
+        { new: true }
+      )
       .exec();
     if (!updatedInvoice) {
       throw new NotFoundException(`Invoice with ID ${_id} not found`);
@@ -146,17 +158,44 @@ const { payment_method_code, ...restOfDto } = createInvoiceDto;
     return updatedInvoice;
   }
 
-  async findAll(): Promise<InvoiceDocument[]> {
-    return await this.invoiceModel.find().exec();
+  private enrichInvoiceData(invoice: any) {
+    const receiver = invoice.receiverId;
+    // Obtener el nombre legible del método de pago usando los labels
+    const paymentMethodName = PaymentMethodCodeLabels[invoice.payment_method_code] || 'Desconocido';
+    
+    return {
+      ...invoice,
+      receiverName: receiver?.company || receiver?.trade_name || receiver?.names || '',
+      paymentMethodName,
+    };
   }
 
-  async findOne(_id: string): Promise<InvoiceDocument> {
-    const invoice = await this.invoiceModel.findById(_id).populate([]).exec(); // Aquí puedes popular las relaciones si las tienes
+  async findAll(): Promise<any[]> {
+    const invoices = await this.invoiceModel.find().populate('receiverId', 'names company trade_name').exec();
+    return invoices.map(inv => this.enrichInvoiceData(inv.toObject()));
+  }
+
+  async findOne(_id: string): Promise<any> {
+    const invoice = await this.invoiceModel
+      .findById(_id)
+      .populate({
+        path: 'receiverId',
+        select: 'identification_document_id identification dv company trade_name names address email phone legal_organization_id tribute_id municipality_id'
+      })
+      .populate({
+        path: 'items.productId',
+        select: 'code_reference name price unit_measure standard_code_id tribute_id'
+      })
+      .exec();
+
     if (!invoice) {
       throw new NotFoundException(`Invoice with ID ${_id} not found`);
     }
-    return invoice;
+
+    console.log('Factura encontrada:', JSON.stringify(invoice, null, 2));
+    return this.enrichInvoiceData(invoice.toObject());
   }
+
   async countByUser(_id: string): Promise<number> {
     return this.invoiceModel.countDocuments({ issuerId: _id }).exec();
   }
@@ -180,29 +219,158 @@ const { payment_method_code, ...restOfDto } = createInvoiceDto;
     }
   }
 
-  async findAllByUser(id: string, skip: number = 0, limit: number = 10): Promise<InvoiceDocument[]> {
-    return this.invoiceModel
+  async findAllByUser(id: string, skip: number = 0, limit: number = 10): Promise<any[]> {
+    const invoices = await this.invoiceModel
       .find({ issuerId: id })
-      .populate('receiverId', 'names email identification company trade_name address phone')
-      .populate({
-        path: 'items.productId',
-        select: 'name code_reference price unit_measure standard_code_id tribute_id'
-      })
+      .populate('receiverId', 'names company trade_name')
       .sort({ issueDate: -1 })
-      .select('reference_code totalAmount status issueDate factusInvoiceNumber receiverId items')
+      .select('reference_code totalAmount status issueDate factusInvoiceNumber receiverId items createdAt payment_method_code')
       .skip(skip)
       .limit(limit)
       .lean()
       .exec();
+    return invoices.map(inv => this.enrichInvoiceData(inv));
   }
+
   // Obtener facturas por estado y usuario
   async findByStatusAndUser(_id: string, status: string): Promise<Invoice[]> {
     return this.invoiceModel.find({ issuerId: _id, status }).exec();
   }
+
   // Obtener total de recaudado de todas las facturas de un usuario
   async getTotalPrice(userId: string): Promise<number> {
     const invoices = await this.findAllByUser(userId);
     return invoices.reduce((total, invoice) => total + invoice.totalAmount, 0);
   }
   
+  // Método para obtener facturas que necesitan validación
+  async getInvoicesNeedingValidation(userId: string): Promise<any[]> {
+    const invoices = await this.invoiceModel
+      .find({
+        issuerId: userId,
+        isValidated: false,
+        status: { $ne: 'completed' }
+      })
+      .populate('receiverId', 'names company trade_name')
+      .sort({ createdAt: -1 })
+      .select('reference_code totalAmount status issueDate factusInvoiceNumber receiverId items createdAt')
+      .exec();
+    return invoices.map(inv => this.enrichInvoiceData(inv.toObject()));
+  }
+
+  // Método para obtener el estado de validación de una factura
+  async getInvoiceValidationStatus(id: string): Promise<{ isValidated: boolean; validationResult?: any }> {
+    const invoice = await this.invoiceModel.findById(id).select('isValidated factusValidation').exec();
+    if (!invoice) {
+      throw new NotFoundException(`Invoice with ID ${id} not found`);
+    }
+    return {
+      isValidated: invoice.isValidated,
+      validationResult: invoice.factusValidation
+    };
+  }
+
+  // Método para resetear la validación de una factura
+  async resetInvoiceValidation(id: string): Promise<InvoiceDocument> {
+    const updatedInvoice = await this.invoiceModel
+      .findByIdAndUpdate(
+        id,
+        { 
+          $set: { 
+            isValidated: false,
+            factusValidation: null,
+            status: 'pending'
+          } 
+        },
+        { new: true }
+      )
+      .exec();
+    if (!updatedInvoice) {
+      throw new NotFoundException(`Invoice with ID ${id} not found`);
+    }
+    return updatedInvoice;
+  }
+
+  // Método para validar una factura específica con Factus
+  async validateInvoiceWithFactus(id: string, factusService: any): Promise<InvoiceDocument> {
+    const invoice = await this.invoiceModel
+      .findById(id)
+      .populate({
+        path: 'receiverId',
+        select: 'identification_document_id identification dv company trade_name names address email phone legal_organization_id tribute_id municipality_id'
+      })
+      .populate({
+        path: 'items.productId',
+        select: 'code_reference name price unit_measure standard_code_id tribute_id'
+      })
+      .exec();
+
+    if (!invoice) {
+      throw new NotFoundException(`Invoice with ID ${id} not found`);
+    }
+
+    console.log('Factura antes de validar:', JSON.stringify(invoice, null, 2));
+
+    try {
+      // Validar con Factus
+      const validationResult = await factusService.validateInvoice(invoice);
+      
+      // Guardar el resultado de la validación
+      const updatedInvoice = await this.saveValidationResult(invoice.id, validationResult);
+      
+      // Retornar la factura actualizada con todos los datos necesarios
+      const updatedInvoiceWithDetails = await this.invoiceModel
+        .findById(updatedInvoice.id)
+        .populate('receiverId', 'names email identification company trade_name address phone')
+        .populate({
+          path: 'items.productId',
+          select: 'name code_reference price unit_measure standard_code_id tribute_id'
+        })
+        .select('reference_code totalAmount status issueDate factusInvoiceNumber receiverId items factusValidation isValidated createdAt')
+        .exec();
+
+      if (!updatedInvoiceWithDetails) {
+        throw new NotFoundException(`Invoice with ID ${updatedInvoice.id} not found after update`);
+      }
+
+      return updatedInvoiceWithDetails;
+    } catch (error) {
+      // Si hay un error en la validación, actualizamos el estado
+      await this.invoiceModel.findByIdAndUpdate(id, {
+        status: 'error',
+        factusValidation: { error: error.message }
+      });
+      throw new BadRequestException(`Error al validar la factura con Factus: ${error.message}`);
+    }
+  }
+
+  async updateStatus(id: string, status: string, factusData?: any): Promise<InvoiceDocument> {
+    const updateData: any = { 
+      status: status,
+      isValidated: true
+    };
+
+    // Si hay datos de Factus, los agregamos al objeto de actualización
+    if (factusData) {
+      updateData.factusValidation = factusData;
+      // Si Factus devuelve un número de factura, lo guardamos
+      if (factusData.number) {
+        updateData.factusInvoiceNumber = factusData.number;
+      }
+    }
+
+    const updatedInvoice = await this.invoiceModel
+      .findByIdAndUpdate(
+        id,
+        { $set: updateData },
+        { new: true }
+      )
+      .exec();
+
+    if (!updatedInvoice) {
+      throw new NotFoundException(`Invoice with ID ${id} not found`);
+    }
+
+    return updatedInvoice;
+  }
 }

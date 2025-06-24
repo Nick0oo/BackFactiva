@@ -10,8 +10,6 @@ import { MfaModule } from './mfa/mfa.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 
 import * as config from './config';
-import { RolesModule } from './users/roles/roles.module';
-import { FactusService } from './factus/factus.service';
 import { FactusModule } from './factus/factus.module';
 import { HttpModule } from '@nestjs/axios';
 
@@ -49,11 +47,10 @@ import { HttpModule } from '@nestjs/axios';
     UsersModule,
     MailModule,
     MfaModule,
-    RolesModule,
     FactusModule,
     HttpModule,
   ],
   controllers: [AppController],
-  providers: [AppService, FactusService],
+  providers: [AppService],
 })
 export class AppModule {}

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { UpdateInvoicePartyDto } from './dto/update-invoice_party.dto';
 import { CreateInvoicePartyDto } from './dto/create-invoice_party.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -24,14 +24,6 @@ export class InvoicePartiesService {
   }
 
   async create(createInvoicePartyDto: CreateInvoicePartyDto, issuerId): Promise<InvoicePartyDocument> {
-    // Debug: Log datos recibidos
-    console.log("📥 DATOS RECIBIDOS EN SERVICE:", createInvoicePartyDto);
-    console.log("📊 TIPOS EN SERVICE:", {
-      legal_organization_id: typeof createInvoicePartyDto.legal_organization_id,
-      identification_document_id: typeof createInvoicePartyDto.identification_document_id,
-      tribute_id: typeof createInvoicePartyDto.tribute_id
-    });
-
     // Paso 1: Verificar que el departamento existe
     const departmentExists = await this.municipalityService.departmentExists(createInvoicePartyDto.department);
     if (!departmentExists) {
@@ -62,23 +54,21 @@ export class InvoicePartiesService {
 
       issuerId
     };
-    
-    console.log("📝 DATOS FINALES PARA MONGOOSE:", partyData);
 
     const createdInvoiceParty = new this.invoicePartyModel(partyData);
     return await createdInvoiceParty.save();
   }
 
   async findAllByUser(userId: string): Promise<InvoicePartyDocument[]> {
-    return this.invoicePartyModel.find({ issuerId: userId }).exec();
+    return this.invoicePartyModel.find({ issuerId: userId }).select('identification_document_id identification dv company trade_name names address email phone legal_organization_id tribute_id department municipality_id issuerId createdAt').exec();
   }
 
   async findAll(): Promise<InvoicePartyDocument[]> {
-    return await this.invoicePartyModel.find().exec();
+    return await this.invoicePartyModel.find().select('identification_document_id identification dv company trade_name names address email phone legal_organization_id tribute_id department municipality_id issuerId createdAt').exec();
   }
 
   async findOne(id: string): Promise<InvoicePartyDocument> {
-    const invoiceParty = await this.invoicePartyModel.findById(id).exec();
+    const invoiceParty = await this.invoicePartyModel.findById(id).select('identification_document_id identification dv company trade_name names address email phone legal_organization_id tribute_id department municipality_id issuerId createdAt').exec();
     if (!invoiceParty) {
       throw new NotFoundException(`InvoiceParty with ID ${id} not found`);
     }
@@ -88,7 +78,17 @@ export class InvoicePartiesService {
   async update(
     id: string,
     updateInvoicePartyDto: UpdateInvoicePartyDto,
+    issuerId: string,
   ): Promise<InvoicePartyDocument> {
+    if (!issuerId) {
+      throw new BadRequestException('El ID del emisor es requerido');
+    }
+
+    const invoiceParty = await this.invoicePartyModel.findById(id).select('issuerId').exec();
+    if (invoiceParty && invoiceParty.issuerId.toString() !== issuerId) {
+      throw new ForbiddenException('No tienes permisos para actualizar este cliente');
+    }
+
     const updatedInvoiceParty = await this.invoicePartyModel.findByIdAndUpdate(
       id,
       updateInvoicePartyDto,

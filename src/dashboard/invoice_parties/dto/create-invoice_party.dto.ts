@@ -9,6 +9,7 @@ import {
   MinLength,
   IsEnum,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { CustomerTributeId } from 'src/factus/catalogos/standard-code/catalogs/enum/customer-tribute-id.enum';
 import { IdentityDocumentType } from 'src/factus/catalogos/standard-code/catalogs/enum/identity-document-type.enum';
 import { OrganizationType } from 'src/factus/catalogos/standard-code/catalogs/enum/organization-type.enum';
@@ -27,9 +28,9 @@ export class CreateInvoicePartyDto {
     message: 'El teléfono debe tener 10 dígitos y comenzar con 3',
   }) phone: string;
   
-  @IsNotEmpty() @IsEnum(OrganizationType) legal_organization_id: OrganizationType;
-  @IsNotEmpty() @IsEnum(CustomerTributeId) tribute_id:  CustomerTributeId;
-  @IsNotEmpty() @IsEnum(IdentityDocumentType) identification_document_id:  IdentityDocumentType;
+  @IsNotEmpty() @Type(() => Number) @IsEnum(OrganizationType) legal_organization_id: OrganizationType;
+  @IsNotEmpty() @Type(() => Number) @IsEnum(CustomerTributeId) tribute_id:  CustomerTributeId;
+  @IsNotEmpty() @Type(() => Number) @IsEnum(IdentityDocumentType) identification_document_id:  IdentityDocumentType;
 
   @IsNotEmpty() @IsString() department: string;
   @IsNotEmpty() @IsString() municipality_name: string;
