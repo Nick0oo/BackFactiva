@@ -1,0 +1,7 @@
+export enum EventCode {
+    ACUSE_RECIBO_FACTURA = '030',
+    RECLAMO_FACTURA = '031',
+    RECIBO_BIEN_O_SERVICIO = '032',
+    ACEPTACION_EXPRESA = '033',
+    ACEPTACION_TACITA = '034',
+  }

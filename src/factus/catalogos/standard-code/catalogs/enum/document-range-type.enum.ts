@@ -1,0 +1,11 @@
+export enum DocumentRangeType {
+    FACTURA_VENTA = 21,
+    NOTA_CREDITO = 22,
+    NOTA_DEBITO = 23,
+    DOCUMENTO_SOPORTE = 24,
+    NOTA_AJUSTE_SOPORTE = 25,
+    NOMINA = 26,
+    NOTA_AJUSTE_NOMINA = 27,
+    ELIMINACION_NOMINA = 28,
+    FACTURA_PAPEL = 30,
+  }
